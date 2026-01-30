@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
+import 'room_lobby_screen.dart';
 
 class CreateRoomScreen extends StatefulWidget {
   const CreateRoomScreen({super.key});
@@ -75,15 +76,14 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
       debugPrint('✅ Oda oluşturuldu: $_roomCode');
 
+      // Oda bekleme alanına git
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Oda oluşturuldu: $_roomCode'),
-            backgroundColor: Colors.green,
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RoomLobbyScreen(roomCode: _roomCode),
           ),
         );
-
-        Navigator.pop(context);
       }
 
     } catch (e) {
