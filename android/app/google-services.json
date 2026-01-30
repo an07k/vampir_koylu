@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "987230211223",
+    "project_id": "vampir-koylu2",
+    "storage_bucket": "vampir-koylu2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:987230211223:android:522c360d81f5c9b0c7add2",
+        "android_client_info": {
+          "package_name": "com.example.vampir_koylu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEX1WsdSIIQ5MAOyfKLSp-JrCwuQRyb2o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
