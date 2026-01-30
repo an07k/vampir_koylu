@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
+import 'screens/create_room_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,17 +29,74 @@ class VampirKoyluApp extends StatelessWidget {
           secondary: const Color(0xFFDC143C),
         ),
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const LoginScreen(),
-        '/main-menu': (context) => const MainMenuScreen(),
-      },
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          // Bağlantı kontrol ediliyor
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFDC143C),
+                ),
+              ),
+            );
+          }
+
+          // Kullanıcı giriş yapmış mı?
+          if (snapshot.hasData) {
+            return const MainMenuScreen();
+          }
+
+          // Giriş yapmamış
+          return const LoginScreen();
+        },
+      ),
     );
   }
 }
 
-class MainMenuScreen extends StatelessWidget {
+class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
+
+  @override
+  State<MainMenuScreen> createState() => _MainMenuScreenState();
+}
+
+class _MainMenuScreenState extends State<MainMenuScreen> {
+  String _username = 'Yükleniyor...';
+  String _avatarColor = '#DC143C';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userDoc.exists) {
+        setState(() {
+          _username = userDoc.data()!['username'];
+          _avatarColor = userDoc.data()!['avatarColor'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Kullanıcı verisi yükleme hatası: $e');
+      setState(() {
+        _username = 'Misafir';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,8 +140,12 @@ class MainMenuScreen extends StatelessWidget {
                   text: 'ODA OLUŞTUR',
                   icon: Icons.add_circle_outline,
                   onPressed: () {
-                    // TODO: Oda oluşturma ekranına git
-                    debugPrint('🏠 Oda Oluştur tıklandı');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateRoomScreen(),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 20),
@@ -135,13 +198,18 @@ class MainMenuScreen extends StatelessWidget {
                 // Profil Butonu (küçük, altta)
                 TextButton.icon(
                   onPressed: () {
-                    // TODO: Profil ekranına git
-                    print('👤 Profil tıklandı');
+                    debugPrint('👤 Profil tıklandı');
                   },
-                  icon: const Icon(Icons.person, color: Colors.white70),
-                  label: const Text(
-                    'Misafir',
-                    style: TextStyle(color: Colors.white70),
+                  icon: Icon(
+                    Icons.person,
+                    color: Color(int.parse(_avatarColor.replaceFirst('#', '0xFF'))),
+                  ),
+                  label: Text(
+                    _username,
+                    style: TextStyle(
+                      color: Color(int.parse(_avatarColor.replaceFirst('#', '0xFF'))),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],

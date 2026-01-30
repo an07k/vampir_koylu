@@ -117,10 +117,8 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('✅ Firebase Auth başarılı! UserID: $userId');
       debugPrint('✅ Firestore kayıt başarılı!');
 
-      // 7. Ana menüye yönlendir
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/main-menu');
-      }
+      // 7. StreamBuilder otomatik olarak MainMenuScreen'e yönlendirecek
+      // (FirebaseAuth.authStateChanges() stream'i tetiklenecek)
     } catch (e) {
       debugPrint('❌ Firebase hata: $e');
       _showErrorDialog('Bir hata oluştu. Lütfen tekrar deneyin.');
