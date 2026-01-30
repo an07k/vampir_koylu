@@ -85,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _isLoading = false;
       });
-      _showErrorDialog('Bu kullanıcı adı zaten alınmış');
+      _showErrorDialog('Bu kullanıcı adı zaten alınmış 😢');
       return;
     }
 
