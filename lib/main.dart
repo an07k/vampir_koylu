@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/create_room_screen.dart';
+import 'screens/join_room_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -155,8 +156,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   text: 'ODAYA KATIL',
                   icon: Icons.meeting_room,
                   onPressed: () {
-                    // TODO: Odaya katılma ekranına git
-                    debugPrint('🚪 Odaya Katıl tıklandı');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const JoinRoomScreen(),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 20),
