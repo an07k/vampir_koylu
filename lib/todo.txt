@@ -1,0 +1,10 @@
+- Login, oda oluşturma, odaya katılma hazır
+- Oda bekleme alanı çalışıyor
+- Firebase Auth + Firestore entegre
+
+todo :
+
+- Birkaç hesap aynı anda girip rol sistemini halletmek
+- Üst üste oda oluşturulabiliyor. Hatalı sistem.
+- Firebase'de tutulan odaları user'ları silecek miyiz falan muhabbeti.
+- Eskiden açılmış bir nickname'e giriş yapabilme

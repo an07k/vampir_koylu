@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/role_distribution.dart';
 
 class RoomLobbyScreen extends StatefulWidget {
   final String roomCode;
@@ -99,6 +100,38 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
       }
     } catch (e) {
       debugPrint('❌ Odadan ayrılma hatası: $e');
+    }
+  }
+
+  // OYUNU BAŞLAT (Rol dağıt ve oyunu başlat)
+  Future<void> _startGame(String gameMode, List<String> playerIds) async {
+    try {
+      // Rolleri ata
+      final assignedRoles = RoleDistribution.assignRoles(playerIds, gameMode);
+
+      // Firestore'a kaydet
+      await RoleDistribution.saveRoles(widget.roomCode, assignedRoles);
+
+      debugPrint('✅ Oyun başlatıldı! Roller dağıtıldı.');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Oyun başladı! Roller dağıtıldı.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Oyun başlatma hatası: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Oyun başlatılamadı. Tekrar deneyin.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -321,10 +354,10 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                           width: double.infinity,
                           height: 60,
                           child: ElevatedButton(
-                            onPressed: playerCount >= 6
+                            onPressed: playerCount >= 4
                                 ? () {
-                                    // TODO: Oyunu başlat
-                                    debugPrint('Oyun başlatılıyor...');
+                                    final playerIds = players.keys.toList();
+                                    _startGame(gameMode, playerIds);
                                   }
                                 : null,
                             style: ElevatedButton.styleFrom(

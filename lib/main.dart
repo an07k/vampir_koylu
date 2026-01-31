@@ -3,12 +3,18 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
+import 'services/role_distribution.dart';
 import 'screens/login_screen.dart';
 import 'screens/create_room_screen.dart';
 import 'screens/join_room_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  /**  testing role distribution
+  RoleDistribution.testRoles();
+  */
+  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

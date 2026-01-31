@@ -221,7 +221,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     Expanded(
                       child: Slider(
                         value: _playerCount.toDouble(),
-                        min: 6,
+                        min: 4,
                         max: 15,
                         divisions: 9,
                         activeColor: const Color(0xFFDC143C),
@@ -236,7 +236,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   ],
                 ),
                 const Text(
-                  '6-15 arası',
+                  '4-15 arası',
                   style: TextStyle(color: Colors.white38, fontSize: 12),
                 ),
                 const SizedBox(height: 30),
