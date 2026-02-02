@@ -36,6 +36,8 @@ dependencies:
   firebase_auth: ^5.3.4
   cloud_firestore: ^5.5.3
   firebase_messaging: ^15.1.7
+  crypto: ^3.0.0
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:

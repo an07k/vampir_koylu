@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../services/role_distribution.dart';
+import '../services/auth_service.dart';
 
 class RoomLobbyScreen extends StatefulWidget {
   final String roomCode;
@@ -17,6 +17,22 @@ class RoomLobbyScreen extends StatefulWidget {
 
 class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
   final TextEditingController _chatController = TextEditingController();
+  String? _userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final user = await AuthService.getCurrentUser();
+    if (mounted && user != null) {
+      setState(() {
+        _userId = user['userId'];
+      });
+    }
+  }
 
   // ODAYI KAPAT DİALOG (Sadece Host)
   void _showCloseRoomDialog() {
@@ -82,7 +98,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
   // ODADAN AYRIL (Normal oyuncu)
   Future<void> _leaveRoom() async {
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
+      if (_userId == null) return;
+      final userId = _userId!;
 
       // Oyuncuyu odadan çıkar
       await FirebaseFirestore.instance
@@ -165,11 +182,16 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
             );
           }
 
+          if (_userId == null) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFDC143C)),
+            );
+          }
+
           final roomData = snapshot.data!.data() as Map<String, dynamic>;
           final players = roomData['players'] as Map<String, dynamic>;
           final hostId = roomData['hostId'];
-          final currentUserId = FirebaseAuth.instance.currentUser!.uid;
-          final isHost = currentUserId == hostId;
+          final isHost = _userId == hostId;
           final playerCount = roomData['playerCount'];
           final maxPlayers = roomData['maxPlayers'];
           final gameMode = roomData['gameMode'];

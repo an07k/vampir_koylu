@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-import 'services/role_distribution.dart';
-import 'screens/login_screen.dart';
+import 'package:vampir_koylu/screens/welcome_screen.dart';
 import 'screens/create_room_screen.dart';
 import 'screens/join_room_screen.dart';
+import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  /**  testing role distribution
-  RoleDistribution.testRoles();
-  */
-  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -29,40 +23,53 @@ class VampirKoyluApp extends StatelessWidget {
     return MaterialApp(
       title: 'Vampir Köylü',
       theme: ThemeData.dark().copyWith(
-        primaryColor: const Color(0xFF8B0000), // Koyu kırmızı
-        scaffoldBackgroundColor: const Color(0xFF1A1A1A), // Koyu gri
+        primaryColor: const Color(0xFF8B0000),
+        scaffoldBackgroundColor: const Color(0xFF1A1A1A),
         colorScheme: ColorScheme.dark(
           primary: const Color(0xFF8B0000),
           secondary: const Color(0xFFDC143C),
         ),
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          // Bağlantı kontrol ediliyor
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFDC143C),
-                ),
-              ),
-            );
-          }
-
-          // Kullanıcı giriş yapmış mı?
-          if (snapshot.hasData) {
-            return const MainMenuScreen();
-          }
-
-          // Giriş yapmamış
-          return const LoginScreen();
-        },
-      ),
+      home: const AuthChecker(),
+      routes: {
+        '/main-menu': (context) => const MainMenuScreen(),
+      },
     );
   }
 }
 
+// AUTH CHECKER - Kullanıcı giriş yapmış mı kontrol et
+class AuthChecker extends StatelessWidget {
+  const AuthChecker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: AuthService.getCurrentUser(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFDC143C),
+              ),
+            ),
+          );
+        }
+
+        if (snapshot.hasData && snapshot.data != null) {
+          // Kullanıcı giriş yapmış
+          return const MainMenuScreen();
+        }
+
+        // Kullanıcı giriş yapmamış
+        return const WelcomeScreen();
+      },
+    );
+  }
+}
+
+// ANA MENÜ
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
 
@@ -71,8 +78,10 @@ class MainMenuScreen extends StatefulWidget {
 }
 
 class _MainMenuScreenState extends State<MainMenuScreen> {
-  String _username = 'Yükleniyor...';
+  String _displayName = 'Yükleniyor...';
+  String? _nickname;
   String _avatarColor = '#DC143C';
+  bool _isGuest = false;
   bool _isLoading = true;
 
   @override
@@ -82,31 +91,92 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   Future<void> _loadUserData() async {
-    try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
-
-      if (userDoc.exists) {
-        setState(() {
-          _username = userDoc.data()!['username'];
-          _avatarColor = userDoc.data()!['avatarColor'];
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('❌ Kullanıcı verisi yükleme hatası: $e');
+    final user = await AuthService.getCurrentUser();
+    if (user != null) {
       setState(() {
-        _username = 'Misafir';
+        _displayName = user['displayName'];
+        _nickname = user['nickname'];
+        _avatarColor = user['avatarColor'];
+        _isGuest = user['isGuest'] ?? false;
         _isLoading = false;
       });
     }
   }
 
+  Future<void> _navigateToCreateRoom() async {
+    final user = await AuthService.getCurrentUser();
+    if (user == null) return;
+
+    final roomsSnapshot = await FirebaseFirestore.instance
+        .collection('rooms')
+        .where('gameState', isEqualTo: 'waiting')
+        .get();
+
+    for (var doc in roomsSnapshot.docs) {
+      final players = doc.data()['players'] as Map<String, dynamic>;
+      if (players.containsKey(user['userId'])) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF2A2A2A),
+              title: const Text(
+                'Zaten bir odanız var',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Text(
+                'Yeni oda oluşturmak için önce "${doc.id}" odasından ayrılmanız veya odayı kapatmanız gerekir.',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'TAMAM',
+                    style: TextStyle(color: Color(0xFFDC143C)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const CreateRoomScreen(),
+        ),
+      );
+    }
+  }
+
+  Future<void> _logout() async {
+    await AuthService.logout();
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFDC143C),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -120,111 +190,162 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo / Başlık
-                const Icon(
-                  Icons.nights_stay,
-                  size: 100,
-                  color: Color(0xFFDC143C),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'VAMPİR KÖYLÜ',
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 60),
-                
-                // Oda Oluştur Butonu
-                MenuButton(
-                  text: 'ODA OLUŞTUR',
-                  icon: Icons.add_circle_outline,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CreateRoomScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                
-                // Odaya Katıl Butonu
-                MenuButton(
-                  text: 'ODAYA KATIL',
-                  icon: Icons.meeting_room,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const JoinRoomScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                
-                // İstatistikler Butonu
-                MenuButton(
-                  text: 'İSTATİSTİKLER',
-                  icon: Icons.bar_chart,
-                  onPressed: () {
-                    // TODO: İstatistikler ekranına git
-                    debugPrint('📊 İstatistikler tıklandı ');
-                  },
-                ),
-              
-                const SizedBox(height: 20),
-
-                // Firebase Test Butonu
-                MenuButton(
-                  text: 'TEST FİREBASE',
-                  icon: Icons.cloud,
-                  onPressed: () async {
-                    try {
-                      // Firestore'a test verisi yaz
-                      await FirebaseFirestore.instance
-                          .collection('test')
-                          .add({
-                        'message': 'Firebase çalışıyor!',
-                        'timestamp': FieldValue.serverTimestamp(),
-                      });
-                      
-                      debugPrint('✅ Firebase BAŞARILI!');
-                    } catch (e) {
-                      debugPrint('❌ Firebase HATA: $e');
-                    }
-                  },
-                ),
-                const SizedBox(height: 40),
-                
-                // Profil Butonu (küçük, altta)
-                TextButton.icon(
-                  onPressed: () {
-                    debugPrint('👤 Profil tıklandı');
-                  },
-                  icon: Icon(
-                    Icons.person,
-                    color: Color(int.parse(_avatarColor.replaceFirst('#', '0xFF'))),
-                  ),
-                  label: Text(
-                    _username,
-                    style: TextStyle(
-                      color: Color(int.parse(_avatarColor.replaceFirst('#', '0xFF'))),
-                      fontWeight: FontWeight.bold,
+          child: Column(
+            children: [
+              // LOGO VE BAŞLIK
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      '🧛',
+                      style: TextStyle(fontSize: 80),
                     ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'VAMPİR KÖYLÜ',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFDC143C),
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 60),
+
+                    // BUTONLAR
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Column(
+                        children: [
+                          MenuButton(
+                            text: 'ODA OLUŞTUR',
+                            icon: Icons.add_circle,
+                            onPressed: _navigateToCreateRoom,
+                          ),
+                          const SizedBox(height: 15),
+                          MenuButton(
+                            text: 'ODAYA KATIL',
+                            icon: Icons.meeting_room,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const JoinRoomScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                          MenuButton(
+                            text: 'İSTATİSTİKLER',
+                            icon: Icons.bar_chart,
+                            onPressed: () {
+                              debugPrint('İstatistikler tıklandı');
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // PROFİL BÖLÜMÜ
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(25),
+                    topRight: Radius.circular(25),
                   ),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Color(int.parse(
+                          _avatarColor.replaceFirst('#', '0xFF'),
+                        )),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          _displayName[0].toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+
+                    // İsim ve nickname
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _displayName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (!_isGuest && _nickname != null)
+                            Text(
+                              '@$_nickname',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white54,
+                              ),
+                            ),
+                          if (_isGuest)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.orange,
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Text(
+                                'Misafir',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // Logout butonu
+                    IconButton(
+                      onPressed: _logout,
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -232,7 +353,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 }
 
-// Özel Buton Widget'ı
+// MENÜ BUTONU WIDGET
 class MenuButton extends StatelessWidget {
   final String text;
   final IconData icon;
@@ -247,43 +368,28 @@ class MenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      height: 60,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8B0000), Color(0xFFDC143C)],
-        ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFDC143C).withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
+    return SizedBox(
+      width: double.infinity,
+      height: 70,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
+          backgroundColor: const Color(0xFF8B0000),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white),
-            const SizedBox(width: 10),
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(width: 15),
             Text(
               text,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                letterSpacing: 1,
               ),
             ),
           ],

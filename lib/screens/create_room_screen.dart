@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'room_lobby_screen.dart';
+import '../services/auth_service.dart';
 
 class CreateRoomScreen extends StatefulWidget {
   const CreateRoomScreen({super.key});
@@ -39,16 +39,23 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     });
 
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final user = await AuthService.getCurrentUser();
+      if (user == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kullanıcı bilgisi bulunamadı.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() { _isLoading = false; });
+        return;
+      }
 
-      // Kullanıcı bilgilerini al
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
-
-      final username = userDoc.data()!['username'];
-      final avatarColor = userDoc.data()!['avatarColor'];
+      final userId = user['userId'];
+      final displayName = user['displayName'];
+      final avatarColor = user['avatarColor'];
 
       // Odayı Firestore'a kaydet
       await FirebaseFirestore.instance
@@ -57,7 +64,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
           .set({
         'roomCode': _roomCode,
         'hostId': userId,
-        'hostUsername': username,
+        'hostUsername': displayName,
         'password': _passwordController.text.isEmpty ? null : _passwordController.text,
         'maxPlayers': _playerCount,
         'playerCount': 1,
@@ -65,7 +72,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         'gameState': 'waiting',
         'players': {
           userId: {
-            'username': username,
+            'username': displayName,
             'avatarColor': avatarColor,
             'isHost': true,
             'joinedAt': FieldValue.serverTimestamp(),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'room_lobby_screen.dart';
+import '../services/auth_service.dart';
 
 class JoinRoomScreen extends StatefulWidget {
   const JoinRoomScreen({super.key});
@@ -27,7 +27,9 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
   // MEVCUT ODA KONTROLÜ
   Future<void> _checkExistingRoom() async {
   try {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final user = await AuthService.getCurrentUser();
+    if (user == null) return;
+    final userId = user['userId'];
 
     // Tüm waiting durumundaki odalara bak
     final roomsSnapshot = await FirebaseFirestore.instance
@@ -119,7 +121,13 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
       }
 
       // Kullanıcı zaten odada mı kontrol et
-      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final user = await AuthService.getCurrentUser();
+      if (user == null) {
+        setState(() { _isLoading = false; });
+        _showErrorDialog('Kullanıcı bilgisi bulunamadı');
+        return;
+      }
+      final userId = user['userId'];
       final players = roomData['players'] as Map<String, dynamic>;
       if (players.containsKey(userId)) {
         setState(() {
@@ -161,16 +169,15 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
   // ODAYA KATIL
   Future<void> _joinRoom(String roomCode) async {
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final user = await AuthService.getCurrentUser();
+      if (user == null) {
+        _showErrorDialog('Kullanıcı bilgisi bulunamadı');
+        return;
+      }
 
-      // Kullanıcı bilgilerini al
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
-
-      final username = userDoc.data()!['username'];
-      final avatarColor = userDoc.data()!['avatarColor'];
+      final userId = user['userId'];
+      final displayName = user['displayName'];
+      final avatarColor = user['avatarColor'];
 
       // Odaya oyuncu ekle
       await FirebaseFirestore.instance
@@ -178,7 +185,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
           .doc(roomCode)
           .update({
         'players.$userId': {
-          'username': username,
+          'username': displayName,
           'avatarColor': avatarColor,
           'isHost': false,
           'joinedAt': FieldValue.serverTimestamp(),

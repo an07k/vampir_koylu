@@ -16,7 +16,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
     with SingleTickerProviderStateMixin {
   bool _revealed = false;
   late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
 
   // ROL İCON VE RENK
   static const Map<String, String> roleIcons = {
@@ -61,10 +60,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
-    );
-    _scaleAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
     );
   }
 
