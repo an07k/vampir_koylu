@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/role_distribution.dart';
 import '../services/auth_service.dart';
+import '../services/gold_service.dart';
 import 'role_reveal_screen.dart';
 
 class RoomLobbyScreen extends StatefulWidget {
@@ -238,6 +239,9 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
       // Firestore'a kaydet
       await RoleDistribution.saveRoles(widget.roomCode, assignedRoles);
+
+      // Host kadergamer123 ise bonus gold dağıt
+      await GoldService.awardGameStartBonus(widget.roomCode);
 
       debugPrint('✅ Oyun başlatıldı! Roller dağıtıldı.');
 
@@ -521,7 +525,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                           width: double.infinity,
                           height: 60,
                           child: ElevatedButton(
-                            onPressed: playerCount >= 4
+                            onPressed: playerCount >= (gameMode == 'eccentric' ? 7 : 4)
                                 ? () {
                                     final playerIds = players.keys.toList();
                                     _startGame(gameMode, playerIds);

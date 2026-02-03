@@ -82,6 +82,7 @@ class AuthService {
         'totalGames': 0,
         'wins': 0,
         'losses': 0,
+        'gold': 0,
       });
 
       await saveUserId(docRef.id, false);

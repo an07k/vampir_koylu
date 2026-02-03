@@ -6,6 +6,7 @@ import 'package:vampir_koylu/screens/welcome_screen.dart';
 import 'screens/create_room_screen.dart';
 import 'screens/join_room_screen.dart';
 import 'services/auth_service.dart';
+import 'services/gold_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -83,6 +84,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   String _avatarColor = '#DC143C';
   bool _isGuest = false;
   bool _isLoading = true;
+  int _gold = 0;
 
   @override
   void initState() {
@@ -93,11 +95,17 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   Future<void> _loadUserData() async {
     final user = await AuthService.getCurrentUser();
     if (user != null) {
+      final isGuest = user['isGuest'] ?? false;
+      int gold = 0;
+      if (!isGuest) {
+        gold = await GoldService.getGold(user['userId']);
+      }
       setState(() {
         _displayName = user['displayName'];
         _nickname = user['nickname'];
         _avatarColor = user['avatarColor'];
-        _isGuest = user['isGuest'] ?? false;
+        _isGuest = isGuest;
+        _gold = gold;
         _isLoading = false;
       });
     }
@@ -189,7 +197,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             ],
           ),
         ),
-        child: SafeArea(
+        child: SafeArea( 
           child: Column(
             children: [
               // LOGO VE BAŞLIK
@@ -333,6 +341,42 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                         ],
                       ),
                     ),
+
+                    // Gold Badge (sadece hesap sahipleri)
+                    if (!_isGuest) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD700).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFFFD700),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Text(
+                              '💰',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$_gold',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFFFD700),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     // Logout butonu
                     IconButton(
