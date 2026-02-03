@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/role_distribution.dart';
 import '../services/auth_service.dart';
+import 'role_reveal_screen.dart';
 
 class RoomLobbyScreen extends StatefulWidget {
   final String roomCode;
@@ -120,6 +121,115 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
     }
   }
 
+  // OYUNCU KICK ET (Sadece Host)
+  void _showKickPlayerDialog(String playerId, String playerName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        title: const Text(
+          'Oyuncuyu Çıkar',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '$playerName adlı oyuncuyu odadan çıkarmak istediğinize emin misiniz?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'İPTAL',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _kickPlayer(playerId);
+            },
+            child: const Text(
+              'ÇIKART',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _kickPlayer(String playerId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomCode)
+          .update({
+        'players.$playerId': FieldValue.delete(),
+        'playerCount': FieldValue.increment(-1),
+      });
+
+      debugPrint('✅ Oyuncu kicklendi: $playerId');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Oyuncu odadan çıkarıldı'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Kick hatası: $e');
+    }
+  }
+
+  // BOT EKLE (Test için)
+  Future<void> _addBot(int currentPlayerCount, int maxPlayers) async {
+    try {
+      if (currentPlayerCount >= maxPlayers) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Oda dolu!'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Bot sayısını hesapla
+      final roomSnapshot = await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomCode)
+          .get();
+      final players = roomSnapshot.data()!['players'] as Map<String, dynamic>;
+      final botCount = players.keys.where((key) => key.startsWith('bot_')).length;
+      final botId = 'bot_${botCount + 1}';
+
+      // Rastgele renk seç
+      final colors = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#33FFF3', '#FFD700'];
+      final botColor = colors[botCount % colors.length];
+
+      await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomCode)
+          .update({
+        'players.$botId': {
+          'username': 'Bot ${botCount + 1}',
+          'avatarColor': botColor,
+          'isHost': false,
+          'joinedAt': FieldValue.serverTimestamp(),
+        },
+        'playerCount': FieldValue.increment(1),
+      });
+
+      debugPrint('✅ Bot eklendi: $botId');
+    } catch (e) {
+      debugPrint('❌ Bot ekleme hatası: $e');
+    }
+  }
+
   // OYUNU BAŞLAT (Rol dağıt ve oyunu başlat)
   Future<void> _startGame(String gameMode, List<String> playerIds) async {
     try {
@@ -195,6 +305,27 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
           final playerCount = roomData['playerCount'];
           final maxPlayers = roomData['maxPlayers'];
           final gameMode = roomData['gameMode'];
+          final gameState = roomData['gameState'] ?? 'waiting';
+
+          // Oyun başladıysa rol reveal ekranına git
+          if (gameState == 'playing') {
+            final playerRole = players[_userId]?['role'];
+            if (playerRole != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RoleRevealScreen(
+                        role: playerRole,
+                        roomCode: widget.roomCode,
+                      ),
+                    ),
+                  );
+                }
+              });
+            }
+          }
 
           return Container(
             decoration: BoxDecoration(
@@ -358,6 +489,20 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                                   ],
                                 ),
                               ),
+                            // Kick Butonu (Sadece host görebilir, kendisi hariç)
+                            if (isHost && playerData['isHost'] != true)
+                              IconButton(
+                                onPressed: () => _showKickPlayerDialog(
+                                  playerId,
+                                  playerData['username'],
+                                ),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                  size: 24,
+                                ),
+                                tooltip: 'Oyuncuyu Çıkar',
+                              ),
                           ],
                         ),
                       );
@@ -396,6 +541,41 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
+                            ),
+                          ),
+                        ),
+                      if (isHost) const SizedBox(height: 10),
+
+                      // Bot Ekle (sadece host görür)
+                      if (isHost)
+                        SizedBox(
+                          width: double.infinity,
+                          height: 60,
+                          child: ElevatedButton(
+                            onPressed: playerCount < maxPlayers
+                                ? () => _addBot(playerCount, maxPlayers)
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF9C27B0),
+                              disabledBackgroundColor: Colors.grey,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.smart_toy, color: Colors.white),
+                                SizedBox(width: 10),
+                                Text(
+                                  'BOT EKLE',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

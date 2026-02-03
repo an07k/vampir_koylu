@@ -24,6 +24,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     _generateRoomCode();
   }
 
+  // MİNİMUM OYUNCU SAYISI (MOD'A GÖRE)
+  int get _minPlayerCount => _gameMode == 'eccentric' ? 7 : 4;
+
   // 6 HANELİ RASTGELE KOD OLUŞTUR
   void _generateRoomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -228,9 +231,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     Expanded(
                       child: Slider(
                         value: _playerCount.toDouble(),
-                        min: 4,
+                        min: _minPlayerCount.toDouble(),
                         max: 15,
-                        divisions: 9,
+                        divisions: 15 - _minPlayerCount,
                         activeColor: const Color(0xFFDC143C),
                         inactiveColor: Colors.white30,
                         onChanged: (value) {
@@ -242,9 +245,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     ),
                   ],
                 ),
-                const Text(
-                  '4-15 arası',
-                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                Text(
+                  '$_minPlayerCount-15 arası',
+                  style: const TextStyle(color: Colors.white38, fontSize: 12),
                 ),
                 const SizedBox(height: 30),
 
@@ -324,6 +327,10 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   onTap: () {
                     setState(() {
                       _gameMode = 'eccentric';
+                      // Egzantrik mod minimum 7 oyuncu gerektirir
+                      if (_playerCount < 7) {
+                        _playerCount = 7;
+                      }
                     });
                   },
                   child: Container(
@@ -365,7 +372,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                               ),
                               SizedBox(height: 5),
                               Text(
-                                '+ Rastgele 1-2 özel rol (Âşık, Deli, vs.)',
+                                '+ Rastgele 1-2 özel rol (Âşık, Deli, vs.)\nMinimum 7 oyuncu gerekir',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.white54,

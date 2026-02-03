@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'game_screen.dart';
 
 class RoleRevealScreen extends StatefulWidget {
   final String role;
+  final String roomCode;
 
   const RoleRevealScreen({
     super.key,
     required this.role,
+    required this.roomCode,
   });
 
   @override
@@ -117,7 +120,16 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
                     opacity: _revealed ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 400),
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GameScreen(
+                              roomCode: widget.roomCode,
+                            ),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: color,
                         shape: RoundedRectangleBorder(
