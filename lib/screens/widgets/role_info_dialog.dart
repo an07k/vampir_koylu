@@ -28,6 +28,8 @@ class RoleInfoDialog extends StatelessWidget {
         'Bir gece nöbet tutarsan, o eve kim geldiğini öğrenirsin. Kim vampir kim değil bulmana yardımcı olabilir!',
     'takipci':
         'Bir eve sızırsan, o kişi bir yere giderse nereye gittiğini öğrenirsin. Vampirlerin hareketlerini izle!',
+    'manipulator':
+        'Oyun boyunca bir kez, gündüz oylaması esnasında iki oyuncunun oylarını değiştirebilirsin. Herkes bunu görecek!',
   };
 
   static const Map<String, String> roleIcons = {
@@ -40,6 +42,7 @@ class RoleInfoDialog extends StatelessWidget {
     'misafir': '🏠',
     'polis': '👮',
     'takipci': '👣',
+    'manipulator': '🎭',
   };
 
   static const Map<String, String> roleNames = {
@@ -52,6 +55,7 @@ class RoleInfoDialog extends StatelessWidget {
     'misafir': 'MİSAFİR',
     'polis': 'POLİS',
     'takipci': 'TAKİPÇİ',
+    'manipulator': 'MANİPÜLATÖR',
   };
 
   static const Map<String, Color> roleColors = {
@@ -64,6 +68,7 @@ class RoleInfoDialog extends StatelessWidget {
     'misafir': Color(0xFF9370DB),
     'polis': Color(0xFF00CED1),
     'takipci': Color(0xFFCD853F),
+    'manipulator': Color(0xFF8A2BE2),
   };
 
   @override

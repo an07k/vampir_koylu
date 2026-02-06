@@ -5,12 +5,13 @@ import 'dart:math';
 class RoleDistribution {
   // EGZANTRİK ROL HAVUZU
   static final List<String> eccentricRoles = [
-    'asik',      // Âşık
-    'deli',      // Deli
-    'dedektif',  // Detektif
-    'misafir',   // Misafir
-    'polis',     // Polis
-    'takipci',   // Takipçi
+    'asik',        // Âşık
+    'deli',        // Deli
+    'dedektif',    // Detektif
+    'misafir',     // Misafir
+    'polis',       // Polis
+    'takipci',     // Takipçi
+    'manipulator', // Manipülatör
   ];
 
   // ROL DAĞILIMI HESAPLA
@@ -140,6 +141,10 @@ class RoleDistribution {
       updates['gameState'] = 'playing';
       updates['currentPhase'] = 'night'; // İlk faz gece
       updates['phaseTime'] = '21:00'; // İlk gece saati
+      updates['nightNumber'] = 1; // İlk gece
+      updates['deadPlayers'] = []; // Henüz kimse ölmedi
+      updates['nightActions'] = {}; // Gece aksiyonları
+      updates['nightResults'] = {}; // Gece sonuçları
 
       await FirebaseFirestore.instance
           .collection('rooms')
