@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
 
-class GameEndScreen extends StatelessWidget {
+class GameEndScreen extends StatefulWidget {
   final String roomCode;
 
   const GameEndScreen({
@@ -10,12 +11,121 @@ class GameEndScreen extends StatelessWidget {
   });
 
   @override
+  State<GameEndScreen> createState() => _GameEndScreenState();
+}
+
+class _GameEndScreenState extends State<GameEndScreen> {
+  String? _userId;
+  bool _isClosingRoom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final user = await AuthService.getCurrentUser();
+    if (mounted && user != null) {
+      setState(() {
+        _userId = user['userId'];
+      });
+    }
+  }
+
+  Future<void> _closeRoomAndSaveHistory(Map<String, dynamic> roomData) async {
+    if (_isClosingRoom) return;
+    setState(() => _isClosingRoom = true);
+
+    try {
+      final players = Map<String, dynamic>.from(roomData['players'] ?? {});
+      final deadPlayers = List<String>.from(roomData['deadPlayers'] ?? []);
+
+      // Oyuncuların özet bilgisini hazırla
+      final playerSummary = <String, dynamic>{};
+      players.forEach((id, data) {
+        playerSummary[id] = {
+          'username': data['username'],
+          'role': data['role'],
+          'survived': !deadPlayers.contains(id),
+        };
+      });
+
+      // game_history koleksiyonuna kaydet
+      await FirebaseFirestore.instance.collection('game_history').add({
+        'roomCode': widget.roomCode,
+        'gameMode': roomData['gameMode'] ?? 'classic',
+        'hostId': roomData['hostId'],
+        'playerCount': players.length,
+        'nightCount': (roomData['nightNumber'] ?? 1) - 1,
+        'winner': roomData['winner'] ?? 'unknown',
+        'winnerIds': roomData['winnerIds'] ?? [],
+        'players': playerSummary,
+        'endedAt': FieldValue.serverTimestamp(),
+      });
+
+      // rooms koleksiyonundan sil
+      await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomCode)
+          .delete();
+
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isClosingRoom = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hata: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Map<String, dynamic> _getWinnerInfo(String winner) {
+    switch (winner) {
+      case 'vampir':
+        return {
+          'icon': '🧛',
+          'title': 'VAMPİRLER KAZANDI!',
+          'subtitle': 'Karanlık galip geldi...',
+          'color': const Color(0xFFDC143C),
+        };
+      case 'koylu':
+        return {
+          'icon': '👨‍🌾',
+          'title': 'KÖYLÜLER KAZANDI!',
+          'subtitle': 'Köy kurtarıldı!',
+          'color': const Color(0xFF32CD32),
+        };
+      case 'deli':
+        return {
+          'icon': '🤪',
+          'title': 'DELİ KAZANDI!',
+          'subtitle': 'Kaos her şeyi ele geçirdi!',
+          'color': const Color(0xFFFF8C00),
+        };
+      default:
+        return {
+          'icon': '❓',
+          'title': 'OYUN BİTTİ',
+          'subtitle': 'Bilinmeyen sonuç',
+          'color': Colors.grey,
+        };
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('rooms')
-            .doc(roomCode)
+            .doc(widget.roomCode)
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -31,8 +141,9 @@ class GameEndScreen extends StatelessWidget {
           final winner = roomData['winner'] ?? 'unknown';
           final winnerIds = List<String>.from(roomData['winnerIds'] ?? []);
           final players = Map<String, dynamic>.from(roomData['players'] ?? {});
+          final hostId = roomData['hostId'];
+          final isHost = _userId == hostId;
 
-          // Kazanan ekip bilgisi
           final winnerInfo = _getWinnerInfo(winner);
 
           return Container(
@@ -50,14 +161,12 @@ class GameEndScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Konfeti veya kazanma ikonu
                   Text(
                     winnerInfo['icon'],
                     style: const TextStyle(fontSize: 80),
                   ),
                   const SizedBox(height: 20),
 
-                  // Kazanan başlık
                   Text(
                     winnerInfo['title'],
                     style: TextStyle(
@@ -160,50 +269,93 @@ class GameEndScreen extends StatelessWidget {
                                       width: 1,
                                     ),
                                   ),
-                                  child: const Row(
-                                    children: [
-                                      Text(
-                                        '💰 +10',
-                                        style: TextStyle(
-                                          color: Colors.amber,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                                  child: const Text(
+                                    '💰 +10',
+                                    style: TextStyle(
+                                      color: Colors.amber,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 30),
 
-                  // Ana menüye dön
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: winnerInfo['color'],
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 50,
-                        vertical: 15,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: const Text(
-                      'ANA MENÜ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                  // Butonlar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: Column(
+                      children: [
+                        // HOST: Odayı Kapat butonu
+                        if (isHost)
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isClosingRoom
+                                  ? null
+                                  : () => _closeRoomAndSaveHistory(roomData),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade800,
+                                padding: const EdgeInsets.symmetric(vertical: 15),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                              ),
+                              icon: _isClosingRoom
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.close, color: Colors.white),
+                              label: Text(
+                                _isClosingRoom ? 'Kapatılıyor...' : 'ODAYI KAPAT',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        if (isHost) const SizedBox(height: 12),
+
+                        // Herkes: Ana Menü butonu
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context)
+                                  .popUntil((route) => route.isFirst);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: winnerInfo['color'],
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                            ),
+                            child: const Text(
+                              'ANA MENÜ',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -213,38 +365,5 @@ class GameEndScreen extends StatelessWidget {
         },
       ),
     );
-  }
-
-  Map<String, dynamic> _getWinnerInfo(String winner) {
-    switch (winner) {
-      case 'vampir':
-        return {
-          'icon': '🧛',
-          'title': 'VAMPİRLER KAZANDI!',
-          'subtitle': 'Karanlık galip geldi...',
-          'color': const Color(0xFFDC143C),
-        };
-      case 'koylu':
-        return {
-          'icon': '👨‍🌾',
-          'title': 'KÖYLÜLER KAZANDI!',
-          'subtitle': 'Köy kurtarıldı!',
-          'color': const Color(0xFF32CD32),
-        };
-      case 'deli':
-        return {
-          'icon': '🤪',
-          'title': 'DELİ KAZANDI!',
-          'subtitle': 'Kaos her şeyi ele geçirdi!',
-          'color': const Color(0xFFFF8C00),
-        };
-      default:
-        return {
-          'icon': '❓',
-          'title': 'OYUN BİTTİ',
-          'subtitle': 'Bilinmeyen sonuç',
-          'color': Colors.grey,
-        };
-    }
   }
 }
