@@ -1,0 +1,9 @@
+---Is this app just a moderation tool for irl games or will it also have a multiplayer mode
+that includes voice-chat?
+
+--- Should host's approval be a requirement for time changes 
+(when all votes are done, when speaking time ends and votes begins etc.)
+
+--- Can all players join eccentric mode or will it for players above specific level?
+
+--- What kind of account system should we have? Nickname and password, or just names?
