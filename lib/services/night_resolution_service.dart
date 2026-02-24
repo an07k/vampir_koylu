@@ -134,7 +134,7 @@ class NightResolutionService {
         'deadPlayers': deadPlayers,
         'currentPhase': 'day',
         'phaseTime': '09:00',
-        'phaseStartTimestamp': FieldValue.serverTimestamp(), // Zaman akışı başlasın
+        'votingStarted': true, // Sabah oylaması direkt başlasın
         'nightActions': {}, // Sıfırla
         'nightResults': {
           'nightNumber': nightNumber,

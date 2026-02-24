@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
@@ -6,6 +7,7 @@ import '../services/night_resolution_service.dart';
 import '../services/day_resolution_service.dart';
 import 'widgets/role_info_dialog.dart';
 import 'widgets/game_time_display.dart';
+import 'widgets/dead_chat_sheet.dart';
 import 'game_end_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -23,6 +25,8 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   String? _userId;
   bool _hasAutoStartedVoting = false;
+  bool _hasAutoVotedBots = false;
+  String? _lastShownEliminatedId; // Popup için: hangi elimeyi zaten gösterdik
 
   @override
   void initState() {
@@ -36,6 +40,138 @@ class _GameScreenState extends State<GameScreen> {
       setState(() {
         _userId = user['userId'];
       });
+    }
+  }
+
+  void _showEliminatedPopup(String name) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('☠️', style: TextStyle(fontSize: 60)),
+            const SizedBox(height: 16),
+            const Text(
+              'OYLAMA SONUCU',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'öldürüldü!',
+              style: TextStyle(color: Colors.red, fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade800,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('TAMAM',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeadChat(String roomCode, Map<String, dynamic> players) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DeadChatSheet(
+        roomCode: roomCode,
+        userId: _userId!,
+        players: players,
+      ),
+    );
+  }
+
+  // ODAYI KAPAT (Sadece host)
+  void _showCloseRoomDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        title: const Text('Odayı Kapat',
+            style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Odayı kapatmak istediğinize emin misiniz? Tüm oyuncular odadan çıkacak.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İPTAL',
+                style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final navigator = Navigator.of(context);
+              await FirebaseFirestore.instance
+                  .collection('rooms')
+                  .doc(widget.roomCode)
+                  .delete();
+              if (mounted) {
+                navigator.pushNamedAndRemoveUntil(
+                    '/main-menu', (route) => false);
+              }
+            },
+            child: const Text('KAPAT',
+                style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // BOT OY ATIŞ (Sadece host tetikler)
+  Future<void> _submitBotVotes(
+    Map<String, dynamic> players,
+    List<String> deadPlayers,
+  ) async {
+    final aliveBots = players.keys
+        .where((id) => id.startsWith('bot_') && !deadPlayers.contains(id))
+        .toList();
+
+    if (aliveBots.isEmpty) return;
+
+    final random = Random();
+    for (final botId in aliveBots) {
+      final possibleTargets = players.keys
+          .where((id) => id != botId && !deadPlayers.contains(id))
+          .toList();
+      if (possibleTargets.isEmpty) continue;
+
+      final targetId = possibleTargets[random.nextInt(possibleTargets.length)];
+      await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomCode)
+          .update({'dayVotes.$botId': targetId});
     }
   }
 
@@ -175,7 +311,7 @@ class _GameScreenState extends State<GameScreen> {
                         _submitNightAction(targetId);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.1),
+                        backgroundColor: Colors.white.withValues(alpha:0.1),
                         padding: const EdgeInsets.all(15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
@@ -249,22 +385,53 @@ class _GameScreenState extends State<GameScreen> {
     if (!isAlive) {
       return Padding(
         padding: const EdgeInsets.all(20),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.red),
-          ),
-          child: const Text(
-            'Öldün - Oyunu izleyebilirsin',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.red,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha:0.2),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.red),
+              ),
+              child: const Text(
+                '💀 Öldün — Oyunu izleyebilirsin',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showDeadChat(
+                  widget.roomCode,
+                  players,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3A1A1A),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                ),
+                icon: const Text('💀', style: TextStyle(fontSize: 16)),
+                label: const Text(
+                  'ÖLÜLER SOHBETİ',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -278,7 +445,7 @@ class _GameScreenState extends State<GameScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.2),
+              color: Colors.blue.withValues(alpha:0.2),
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: Colors.blue),
             ),
@@ -302,7 +469,7 @@ class _GameScreenState extends State<GameScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
+              color: Colors.green.withValues(alpha:0.2),
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: Colors.green),
             ),
@@ -369,22 +536,22 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     // GÜNDÜZ FAZI - OYLAMA
-    // Oylama başlamadıysa bekle
+    // Oylama bitti, serbest zaman
     if (!votingStarted) {
       return Padding(
         padding: const EdgeInsets.all(20),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.2),
+            color: Colors.indigo.withValues(alpha:0.2),
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.blue),
+            border: Border.all(color: Colors.indigo),
           ),
           child: const Text(
-            '💬 Tartışma devam ediyor...\nOylama henüz başlamadı.',
+            '💬 Serbest zaman\nKonuşabilir, tartışabilirsin.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.blue,
+              color: Colors.indigo,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -404,7 +571,7 @@ class _GameScreenState extends State<GameScreen> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.2),
+            color: Colors.orange.withValues(alpha:0.2),
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: Colors.orange),
           ),
@@ -531,7 +698,7 @@ class _GameScreenState extends State<GameScreen> {
                         _submitDayVote(targetId);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.1),
+                        backgroundColor: Colors.white.withValues(alpha:0.1),
                         padding: const EdgeInsets.all(15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
@@ -648,31 +815,40 @@ class _GameScreenState extends State<GameScreen> {
           final hostId = roomData['hostId'];
           final dayVotes = Map<String, dynamic>.from(roomData['dayVotes'] ?? {});
           final votingStarted = roomData['votingStarted'] ?? false;
+          final lastEliminated = roomData['lastEliminated'] as Map<String, dynamic>?;
 
-          // Auto-start voting at 22:00 (only once)
-          if (currentPhase == 'day' && phaseStartTimestamp != null) {
-            if (_shouldAutoStartVoting(phaseStartTimestamp) && !_hasAutoStartedVoting) {
-              _hasAutoStartedVoting = true;
-              // Start voting and then resolve after a short delay
-              Future.delayed(const Duration(milliseconds: 500), () async {
-                // First, start voting if not started
-                if (!votingStarted) {
-                  await FirebaseFirestore.instance
-                      .collection('rooms')
-                      .doc(widget.roomCode)
-                      .update({'votingStarted': true});
-
-                  // Wait a bit for players to vote
-                  await Future.delayed(const Duration(seconds: 2));
-                }
-
-                // Then resolve
-                await DayResolutionService.resolveVoting(widget.roomCode);
+          // Kim öldü popup'ı - yeni bir eliminasyon varsa göster
+          if (lastEliminated != null) {
+            final eliminatedId = lastEliminated['id'] as String?;
+            if (eliminatedId != null && eliminatedId != _lastShownEliminatedId) {
+              _lastShownEliminatedId = eliminatedId;
+              final eliminatedName = lastEliminated['name'] as String? ?? '?';
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _showEliminatedPopup(eliminatedName);
               });
             }
-          } else {
-            // Reset flag when not in day phase
+          }
+
+          // Serbest zaman 22:00'da otomatik geceye geç
+          if (currentPhase == 'day' && !votingStarted && phaseStartTimestamp != null) {
+            if (_shouldAutoStartVoting(phaseStartTimestamp) && !_hasAutoStartedVoting) {
+              _hasAutoStartedVoting = true;
+              Future.delayed(const Duration(milliseconds: 500), () async {
+                await DayResolutionService.advanceToNight(widget.roomCode);
+              });
+            }
+          } else if (currentPhase != 'day') {
             _hasAutoStartedVoting = false;
+          }
+
+          // Bot oylaması - oylama başladığında host otomatik bot oylarını gönderir
+          if (currentPhase == 'day' && votingStarted && hostId == _userId && !_hasAutoVotedBots) {
+            _hasAutoVotedBots = true;
+            Future.delayed(const Duration(milliseconds: 300), () async {
+              await _submitBotVotes(players, deadPlayers);
+            });
+          } else if (!votingStarted) {
+            _hasAutoVotedBots = false;
           }
 
           // Rol bilgileri
@@ -726,7 +902,7 @@ class _GameScreenState extends State<GameScreen> {
                 end: Alignment.bottomCenter,
                 colors: [
                   const Color(0xFF1A1A1A),
-                  const Color(0xFF8B0000).withOpacity(0.3),
+                  const Color(0xFF8B0000).withValues(alpha:0.3),
                 ],
               ),
             ),
@@ -759,10 +935,12 @@ class _GameScreenState extends State<GameScreen> {
                                   ),
                                 ),
                                 GameTimeDisplay(
-                                  phaseStartTimestamp: currentPhase == 'day'
+                                  phaseStartTimestamp: currentPhase == 'day' && !votingStarted
                                       ? phaseStartTimestamp
                                       : null,
-                                  staticTime: phaseTime,
+                                  staticTime: currentPhase == 'day' && votingStarted
+                                      ? '09:00'
+                                      : phaseTime,
                                 ),
                               ],
                             ),
@@ -774,13 +952,39 @@ class _GameScreenState extends State<GameScreen> {
 
                   const Divider(color: Colors.white24),
 
+                  // HOST: Odayı Kapat seçeneği
+                  if (hostId == _userId)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _showCloseRoomDialog,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red.shade300,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                          ),
+                          icon: const Icon(Icons.close, size: 14),
+                          label: const Text(
+                            'ODAYI KAPAT',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // HOST KONTROL PANELİ (Gece fazında)
                   if (currentPhase == 'night' && hostId == _userId)
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.2),
+                        color: Colors.purple.withValues(alpha:0.2),
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(color: Colors.purple),
                       ),
@@ -848,26 +1052,33 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                     ),
 
-                  // HOST KONTROL PANELİ (Gündüz fazında - Oy durumu)
+                  // HOST KONTROL PANELİ (Gündüz fazında)
                   if (currentPhase == 'day' && hostId == _userId)
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.2),
+                        color: votingStarted
+                            ? Colors.orange.withValues(alpha:0.2)
+                            : Colors.indigo.withValues(alpha:0.2),
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.orange),
+                        border: Border.all(
+                          color: votingStarted ? Colors.orange : Colors.indigo,
+                        ),
                       ),
                       child: Column(
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.shield, color: Colors.orange),
-                              SizedBox(width: 10),
+                              Icon(
+                                Icons.shield,
+                                color: votingStarted ? Colors.orange : Colors.indigo,
+                              ),
+                              const SizedBox(width: 10),
                               Text(
-                                'HOST KONTROL PANELİ',
+                                votingStarted ? 'OYLAMA AŞAMASI' : 'SERBEST ZAMAN',
                                 style: TextStyle(
-                                  color: Colors.orange,
+                                  color: votingStarted ? Colors.orange : Colors.indigo,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
@@ -875,77 +1086,50 @@ class _GameScreenState extends State<GameScreen> {
                             ],
                           ),
                           const SizedBox(height: 10),
-                          if (votingStarted)
-                            Text(
-                              '${dayVotes.length} / ${players.keys.where((id) => !deadPlayers.contains(id) && !id.startsWith('bot_')).length} oyuncu oy verdi',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            )
-                          else
-                            const Text(
-                              'Oylama henüz başlamadı',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          const SizedBox(height: 5),
                           Text(
                             votingStarted
-                                ? 'Oylamayı sonlandırabilirsin.'
-                                : 'Oylamayı başlat veya 22:00\'ı bekle.',
-                            textAlign: TextAlign.center,
+                                ? '${dayVotes.length} / ${players.keys.where((id) => !deadPlayers.contains(id)).length} oyuncu oy verdi'
+                                : 'Serbest zaman — 22:00\'da gece başlayacak.',
                             style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 11,
-                              fontStyle: FontStyle.italic,
+                              color: Colors.white70,
+                              fontSize: 12,
                             ),
                           ),
                           const SizedBox(height: 10),
                           ElevatedButton(
                             onPressed: () async {
-                              if (!votingStarted) {
-                                // Oylamayı başlat
-                                await FirebaseFirestore.instance
-                                    .collection('rooms')
-                                    .doc(widget.roomCode)
-                                    .update({'votingStarted': true});
-
+                              if (votingStarted) {
+                                // Oylamayı sonuçlandır → serbest zamana geç
+                                await DayResolutionService.resolveVoting(widget.roomCode);
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Oylama başladı! Oyuncular oy verebilir.'),
+                                      content: Text('Oylama sonuçlandı! Serbest zaman başladı.'),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
                                 }
                               } else {
-                                // Oylamayı sonuçlandır
-                                await DayResolutionService.resolveVoting(
-                                    widget.roomCode);
-
+                                // Serbest zamanı bitir → geceye geç
+                                await DayResolutionService.advanceToNight(widget.roomCode);
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Oylama sonuçlandırıldı!'),
-                                      backgroundColor: Colors.green,
+                                      content: Text('Gece başladı!'),
+                                      backgroundColor: Colors.purple,
                                     ),
                                   );
                                 }
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: votingStarted
-                                  ? Colors.red
-                                  : Colors.orange,
+                              backgroundColor: votingStarted ? Colors.red : Colors.indigo,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                             child: Text(
-                              votingStarted ? 'OYLAMAYI BİTİR' : 'OYLAMAYA BAŞLA',
+                              votingStarted ? 'OYLAMAYI BİTİR' : 'GECEYİ BAŞLAT',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -961,10 +1145,10 @@ class _GameScreenState extends State<GameScreen> {
                     margin: const EdgeInsets.all(20),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: myRoleColor.withOpacity(0.15),
+                      color: myRoleColor.withValues(alpha:0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: myRoleColor.withOpacity(0.5),
+                        color: myRoleColor.withValues(alpha:0.5),
                         width: 2,
                       ),
                     ),
@@ -1033,7 +1217,11 @@ class _GameScreenState extends State<GameScreen> {
                             child: ListView.builder(
                               itemCount: players.length,
                               itemBuilder: (context, index) {
-                                final playerId = players.keys.elementAt(index);
+                                // Canlılar önce, ölüler sona
+                                final sortedIds = (players.keys.toList()
+                                  ..sort((a, b) => (deadPlayers.contains(a) ? 1 : 0)
+                                      .compareTo(deadPlayers.contains(b) ? 1 : 0)));
+                                final playerId = sortedIds[index];
                                 final playerData = players[playerId];
                                 final isDead = deadPlayers.contains(playerId);
 
@@ -1041,7 +1229,7 @@ class _GameScreenState extends State<GameScreen> {
                                   margin: const EdgeInsets.only(bottom: 10),
                                   padding: const EdgeInsets.all(15),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
+                                    color: Colors.white.withValues(alpha:0.05),
                                     borderRadius: BorderRadius.circular(15),
                                   ),
                                   child: Row(
@@ -1097,8 +1285,8 @@ class _GameScreenState extends State<GameScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: isDead
-                                              ? Colors.red.withOpacity(0.2)
-                                              : Colors.green.withOpacity(0.2),
+                                              ? Colors.red.withValues(alpha:0.2)
+                                              : Colors.green.withValues(alpha:0.2),
                                           borderRadius:
                                               BorderRadius.circular(10),
                                           border: Border.all(

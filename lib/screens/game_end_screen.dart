@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
+import 'room_lobby_screen.dart';
 
 class GameEndScreen extends StatefulWidget {
   final String roomCode;
@@ -16,7 +17,7 @@ class GameEndScreen extends StatefulWidget {
 
 class _GameEndScreenState extends State<GameEndScreen> {
   String? _userId;
-  bool _isClosingRoom = false;
+  bool _isReturning = false;
 
   @override
   void initState() {
@@ -33,49 +34,51 @@ class _GameEndScreenState extends State<GameEndScreen> {
     }
   }
 
-  Future<void> _closeRoomAndSaveHistory(Map<String, dynamic> roomData) async {
-    if (_isClosingRoom) return;
-    setState(() => _isClosingRoom = true);
+  // HOST: Odayı sıfırla ve lobiye dön
+  Future<void> _resetRoomAndReturn(Map<String, dynamic> players) async {
+    if (_isReturning) return;
+    setState(() => _isReturning = true);
 
     try {
-      final players = Map<String, dynamic>.from(roomData['players'] ?? {});
-      final deadPlayers = List<String>.from(roomData['deadPlayers'] ?? []);
-
-      // Oyuncuların özet bilgisini hazırla
-      final playerSummary = <String, dynamic>{};
+      // Rolleri oyuncu verilerinden kaldır
+      final updatedPlayers = <String, dynamic>{};
       players.forEach((id, data) {
-        playerSummary[id] = {
-          'username': data['username'],
-          'role': data['role'],
-          'survived': !deadPlayers.contains(id),
-        };
+        final playerData = Map<String, dynamic>.from(data);
+        playerData.remove('role');
+        updatedPlayers[id] = playerData;
       });
 
-      // game_history koleksiyonuna kaydet
-      await FirebaseFirestore.instance.collection('game_history').add({
-        'roomCode': widget.roomCode,
-        'gameMode': roomData['gameMode'] ?? 'classic',
-        'hostId': roomData['hostId'],
-        'playerCount': players.length,
-        'nightCount': (roomData['nightNumber'] ?? 1) - 1,
-        'winner': roomData['winner'] ?? 'unknown',
-        'winnerIds': roomData['winnerIds'] ?? [],
-        'players': playerSummary,
-        'endedAt': FieldValue.serverTimestamp(),
-      });
-
-      // rooms koleksiyonundan sil
+      // Odayı bekleme durumuna sıfırla
       await FirebaseFirestore.instance
           .collection('rooms')
           .doc(widget.roomCode)
-          .delete();
+          .update({
+        'gameState': 'waiting',
+        'currentPhase': 'night',
+        'deadPlayers': [],
+        'nightActions': {},
+        'dayVotes': {},
+        'votingStarted': false,
+        'nightNumber': 1,
+        'players': updatedPlayers,
+        'winner': FieldValue.delete(),
+        'winnerIds': FieldValue.delete(),
+        'lastEliminated': FieldValue.delete(),
+        'phaseStartTimestamp': FieldValue.delete(),
+        'nightResults': FieldValue.delete(),
+      });
 
       if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RoomLobbyScreen(roomCode: widget.roomCode),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isClosingRoom = false);
+        setState(() => _isReturning = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Hata: $e'),
@@ -84,6 +87,25 @@ class _GameEndScreenState extends State<GameEndScreen> {
         );
       }
     }
+  }
+
+  // DİĞER OYUNCU: Sadece lobiye dön
+  void _returnToRoom() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RoomLobbyScreen(roomCode: widget.roomCode),
+      ),
+    );
+  }
+
+  // ANA MENÜ - hesaptan çıkış yapmadan
+  void _goToMainMenu() {
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/main-menu',
+      (route) => false,
+    );
   }
 
   Map<String, dynamic> _getWinnerInfo(String winner) {
@@ -153,7 +175,7 @@ class _GameEndScreenState extends State<GameEndScreen> {
                 end: Alignment.bottomCenter,
                 colors: [
                   const Color(0xFF1A1A1A),
-                  winnerInfo['color'].withOpacity(0.3),
+                  (winnerInfo['color'] as Color).withValues(alpha: 0.3),
                 ],
               ),
             ),
@@ -192,10 +214,10 @@ class _GameEndScreenState extends State<GameEndScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 30),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: winnerInfo['color'].withOpacity(0.5),
+                        color: (winnerInfo['color'] as Color).withValues(alpha: 0.5),
                         width: 2,
                       ),
                     ),
@@ -262,7 +284,7 @@ class _GameEndScreenState extends State<GameEndScreen> {
                                     vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.amber.withOpacity(0.2),
+                                    color: Colors.amber.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                       color: Colors.amber,
@@ -292,52 +314,19 @@ class _GameEndScreenState extends State<GameEndScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 30),
                     child: Column(
                       children: [
-                        // HOST: Odayı Kapat butonu
-                        if (isHost)
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isClosingRoom
-                                  ? null
-                                  : () => _closeRoomAndSaveHistory(roomData),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.shade800,
-                                padding: const EdgeInsets.symmetric(vertical: 15),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                              ),
-                              icon: _isClosingRoom
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.close, color: Colors.white),
-                              label: Text(
-                                _isClosingRoom ? 'Kapatılıyor...' : 'ODAYI KAPAT',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                        if (isHost) const SizedBox(height: 12),
-
-                        // Herkes: Ana Menü butonu
+                        // ODAYA DÖN - Host için (room'u sıfırlar), diğerleri için sadece navigate
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context)
-                                  .popUntil((route) => route.isFirst);
-                            },
+                          child: ElevatedButton.icon(
+                            onPressed: _isReturning
+                                ? null
+                                : () {
+                                    if (isHost) {
+                                      _resetRoomAndReturn(players);
+                                    } else {
+                                      _returnToRoom();
+                                    }
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: winnerInfo['color'],
                               padding: const EdgeInsets.symmetric(vertical: 15),
@@ -345,9 +334,20 @@ class _GameEndScreenState extends State<GameEndScreen> {
                                 borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                            child: const Text(
-                              'ANA MENÜ',
-                              style: TextStyle(
+                            icon: _isReturning
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.meeting_room,
+                                    color: Colors.white),
+                            label: Text(
+                              _isReturning ? 'Dönülüyor...' : 'ODAYA DÖN',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -355,6 +355,33 @@ class _GameEndScreenState extends State<GameEndScreen> {
                             ),
                           ),
                         ),
+
+                        // ANA MENÜ - sadece misafir oyuncular için
+                        if (!isHost) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _goToMainMenu,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF3A3A3A),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 15),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                              ),
+                              child: const Text(
+                                'ANA MENÜ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

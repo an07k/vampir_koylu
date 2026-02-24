@@ -19,7 +19,6 @@ class DayResolutionService {
       final players = Map<String, dynamic>.from(roomData['players'] ?? {});
       final dayVotes = Map<String, dynamic>.from(roomData['dayVotes'] ?? {});
       final deadPlayers = List<String>.from(roomData['deadPlayers'] ?? []);
-      final nightNumber = roomData['nightNumber'] ?? 1;
 
       debugPrint('☀️ Gündüz oylaması sonuçlandırılıyor...');
 
@@ -31,7 +30,11 @@ class DayResolutionService {
 
       if (voteCounts.isEmpty) {
         debugPrint('⚠️ Hiç oy yok, kimse öldürülmedi');
-        await _advanceToNight(roomRef, nightNumber);
+        await roomRef.update({
+          'dayVotes': {},
+          'votingStarted': false,
+          'phaseStartTimestamp': FieldValue.serverTimestamp(),
+        });
         return;
       }
 
@@ -42,7 +45,11 @@ class DayResolutionService {
 
       if (victims.length > 1) {
         debugPrint('⚠️ Berabere! Kimse öldürülmedi: ${victims.map((e) => e.key).join(', ')}');
-        await _advanceToNight(roomRef, nightNumber);
+        await roomRef.update({
+          'dayVotes': {},
+          'votingStarted': false,
+          'phaseStartTimestamp': FieldValue.serverTimestamp(),
+        });
         return;
       }
 
@@ -62,13 +69,18 @@ class DayResolutionService {
         return;
       }
 
-      // OYUN DEVAM EDİYOR - YENİ GECEYE GEÇ
+      // OYUN DEVAM EDİYOR - SERBEST ZAMANA GEÇ
       await roomRef.update({
         'deadPlayers': deadPlayers,
-        'dayVotes': {}, // Oyları sıfırla
+        'dayVotes': {},
+        'votingStarted': false,
+        'phaseStartTimestamp': FieldValue.serverTimestamp(),
+        'lastEliminated': {
+          'id': eliminatedId,
+          'name': players[eliminatedId]?['username'] ?? '?',
+          'timestamp': FieldValue.serverTimestamp(),
+        },
       });
-
-      await _advanceToNight(roomRef, nightNumber);
     } catch (e) {
       debugPrint('❌ Oylama çözümleme hatası: $e');
     }
@@ -168,18 +180,24 @@ class DayResolutionService {
     });
   }
 
-  // YENİ GECEYE GEÇ
-  static Future<void> _advanceToNight(
-      DocumentReference roomRef, int currentNightNumber) async {
+  // YENİ GECEYE GEÇ (host butonu veya 22:00 auto-start)
+  static Future<void> advanceToNight(String roomCode) async {
+    final roomRef =
+        FirebaseFirestore.instance.collection('rooms').doc(roomCode);
+    final roomDoc = await roomRef.get();
+    if (!roomDoc.exists) return;
+
+    final nightNumber = roomDoc.data()?['nightNumber'] ?? 1;
+
     await roomRef.update({
       'currentPhase': 'night',
       'phaseTime': '21:00',
-      'nightNumber': currentNightNumber + 1,
-      'dayVotes': {}, // Oyları temizle
-      'nightActions': {}, // Aksiyonları temizle
-      'votingStarted': false, // Oylama durumunu sıfırla
+      'nightNumber': nightNumber + 1,
+      'dayVotes': {},
+      'nightActions': {},
+      'votingStarted': false,
     });
 
-    debugPrint('🌙 Gece ${currentNightNumber + 1} başladı');
+    debugPrint('🌙 Gece ${nightNumber + 1} başladı');
   }
 }

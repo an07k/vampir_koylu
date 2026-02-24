@@ -30,7 +30,8 @@ class _GameTimeDisplayState extends State<GameTimeDisplay> {
   @override
   void didUpdateWidget(GameTimeDisplay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.phaseStartTimestamp != oldWidget.phaseStartTimestamp) {
+    if (widget.phaseStartTimestamp != oldWidget.phaseStartTimestamp ||
+        widget.staticTime != oldWidget.staticTime) {
       _updateTime();
     }
   }
