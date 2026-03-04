@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../constants/app_strings.dart';
 import '../services/auth_service.dart';
 import '../services/night_resolution_service.dart';
 import '../services/day_resolution_service.dart';
@@ -141,16 +142,16 @@ class _GameScreenState extends State<GameScreen> {
       final kinlendiKill = nightResults['kinlendi_kill'] as String?;
 
       if (asikEffect == 'intihar') {
-        messages.add('💔 Âşık aşkının ölümüne dayanamayıp intihar etti!');
+        messages.add(AppStrings.asikIntihar);
       } else if (asikEffect == 'kinlendi') {
-        messages.add('💔 Âşık sevgilisini yitirdi ve kinlendi...');
+        messages.add(AppStrings.asikKinlendi);
       } else if (asikEffect == 'deli_devir') {
-        messages.add('💔 Âşık sevgilisini yitirdi ve deli oldu!');
+        messages.add(AppStrings.asikDeli);
       }
 
       if (kinlendiKill != null) {
         final kinlendiName = (nightResults['kinlendi_name'] as String?) ?? 'bilinmeyen';
-        messages.add('🔥 Kinlendi âşık $kinlendiName\'i intikam için öldürdü!');
+        messages.add(AppStrings.asikVengeance.replaceAll('{name}', kinlendiName));
       }
     }
 
@@ -466,6 +467,102 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  // ÂŞIK UI BUILDERS
+  Widget _buildInfoBox(String text, Color color) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: color),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: color,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAsikTargetButton(
+    Map<String, dynamic> players,
+    List<String> deadPlayers,
+    Color roleColor,
+  ) {
+    final availableTargets = players.keys
+        .where((id) => id != _userId && !deadPlayers.contains(id))
+        .toList();
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
+        width: double.infinity,
+        height: 60,
+        child: ElevatedButton(
+          onPressed: () {
+            _showTargetSelection(
+              availableTargets,
+              players,
+              deadPlayers,
+              roleColor,
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: roleColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          ),
+          child: const Text(
+            AppStrings.asikSelectTarget,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAsikKinlendiButton(
+    Map<String, dynamic> players,
+    List<String> deadPlayers,
+    Color roleColor,
+  ) {
+    final availableTargets = players.keys
+        .where((id) => id != _userId && !deadPlayers.contains(id))
+        .toList();
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
+        width: double.infinity,
+        height: 60,
+        child: ElevatedButton(
+          onPressed: () {
+            _showTargetSelection(
+              availableTargets,
+              players,
+              deadPlayers,
+              Colors.deepPurple,
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepPurple,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          ),
+          child: const Text(
+            AppStrings.asikKinlendiButton,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+
   // HEDEF SEÇİM DİYALOGU
   void _showTargetSelection(
     List<String> availableTargets,
@@ -650,147 +747,17 @@ class _GameScreenState extends State<GameScreen> {
         final isKinlendi = players[_userId]?['asikKinlendi'] == true;
 
         if (asikTarget != null && !isKinlendi) {
-          // Hedef seçildi, bekliyoruz
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.pink.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.pink),
-              ),
-              child: const Text(
-                '💘 Aşığını seçtiniz. Kaderinizi bekliyorsunuz...',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.pink,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          );
+          return _buildInfoBox(AppStrings.asikTargetSelected, Colors.pink);
         } else if (isKinlendi) {
-          // Kinlendi kill UI
           if (hasSubmitted) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.green),
-                ),
-                child: const Text(
-                  '✓ Kurbanını seçtin. Intikamın alınacak...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            );
+            return _buildInfoBox(AppStrings.asikKinlendiSubmitted, Colors.green);
           }
-
-          final availableTargets = players.keys
-              .where((id) => id != _userId && !deadPlayers.contains(id))
-              .toList();
-
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
-                onPressed: () {
-                  _showTargetSelection(
-                    availableTargets,
-                    players,
-                    deadPlayers,
-                    roleColor,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-                child: const Text(
-                  '💔 KİNLENDİ — Kurbanını Seç',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          );
+          return _buildAsikKinlendiButton(players, deadPlayers, roleColor);
         } else {
-          // Henüz seçmemiş: aşık seçim UI
           if (hasSubmitted) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.green),
-                ),
-                child: const Text(
-                  '✓ Aksiyonun gönderildi. Diğer oyuncular bekleniyor...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            );
+            return _buildInfoBox(AppStrings.asikActionSubmitted, Colors.green);
           }
-
-          final availableTargets = players.keys
-              .where((id) => id != _userId && !deadPlayers.contains(id))
-              .toList();
-
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
-                onPressed: () {
-                  _showTargetSelection(
-                    availableTargets,
-                    players,
-                    deadPlayers,
-                    roleColor,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: roleColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-                child: const Text(
-                  'Aşığını Seç 💘',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          );
+          return _buildAsikTargetButton(players, deadPlayers, roleColor);
         }
       }
 

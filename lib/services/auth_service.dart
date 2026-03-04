@@ -19,13 +19,20 @@ class AuthService {
     return sha256.convert(bytes).toString();
   }
 
-  // NICKNAME UNIQUE KONTROLÜ
+  /// Check if nickname is available
+  /// Returns: true if not taken, false if already in use
   static Future<bool> isNicknameAvailable(String nickname) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('nickname', isEqualTo: nickname)
-        .get();
-    return snapshot.docs.isEmpty;
+    assert(nickname.isNotEmpty, 'nickname cannot be empty');
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('nickname', isEqualTo: nickname)
+          .get();
+      return snapshot.docs.isEmpty;
+    } catch (e) {
+      debugPrint('❌ Error checking nickname availability: $e');
+      rethrow;
+    }
   }
 
   // HESAP OLUŞTUR
@@ -215,7 +222,10 @@ class AuthService {
     await prefs.setBool('isGuest', isGuest);
   }
 
-  // USER ID AL
+  /// Get current logged-in user
+  /// Returns: null if no user logged in
+  /// Returns: Map with userId, displayName, avatarColor, nickname?, isGuest
+  /// Note: nickname is null for guest users
   static Future<Map<String, dynamic>?> getCurrentUser() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('userId');
@@ -226,7 +236,7 @@ class AuthService {
     }
 
     try {
-      // Firestore'dan kullanıcı bilgilerini al
+      // Load user from Firestore
       final collection = isGuest ? 'guests' : 'users';
       final doc = await FirebaseFirestore.instance
           .collection(collection)
@@ -234,7 +244,7 @@ class AuthService {
           .get();
 
       if (!doc.exists) {
-        // Kullanıcı silinmiş, local storage'ı temizle
+        // User was deleted, clear local storage
         await logout();
         return null;
       }
@@ -248,8 +258,8 @@ class AuthService {
         'avatarColor': data['avatarColor'],
       };
     } catch (e) {
-      debugPrint('❌ Kullanıcı bilgisi alma hatası: $e');
-      return null;
+      debugPrint('❌ Error loading current user: $e');
+      return null; // Return null on error instead of rethrowing
     }
   }
 
