@@ -45,6 +45,22 @@ class NightResolutionService {
         }
       }
 
+      // ÂŞIK HEDEF KALICI KAYDI (ilk seç)
+      final asikActorId = roleActors['asik'];
+      final asikTarget = roleTargets['asik'];
+      String? existingAsikTarget;
+      if (asikActorId != null) {
+        existingAsikTarget = players[asikActorId]?['asikTarget'] as String?;
+      }
+
+      if (asikActorId != null &&
+          asikTarget != null &&
+          existingAsikTarget == null) {
+        // İlk kez seçiyor, players map'ini güncelle
+        players[asikActorId] = Map<String, dynamic>.from(players[asikActorId]!);
+        (players[asikActorId] as Map)['asikTarget'] = asikTarget;
+      }
+
       // VAMPİR HEDEF SEÇİMİ (en çok oy alan)
       String? vampirTarget;
       final vampirVotes = <String, int>{};
@@ -91,6 +107,70 @@ class NightResolutionService {
           debugPrint('🧛 Vampirler $killedPlayer\'i öldürdü');
         } else if (protectedPlayers.contains(vampirTarget)) {
           debugPrint('🏥 Doktor $vampirTarget\'i kurtardı!');
+        }
+      }
+
+      // KİNLENDİ ÂŞIK GECE ÖLDÜRMESI (asik önceki geceden kinlendi ise)
+      String? kinlendiKill;
+      if (asikActorId != null && !deadPlayers.contains(asikActorId)) {
+        final isKinlendi = players[asikActorId]?['asikKinlendi'] == true;
+        // kinlendi ise bu gece nightActions'tan hedef al (gece aksiyonu)
+        final kinlendiTarget =
+            isKinlendi ? (roleTargets['asik'] ?? existingAsikTarget) : null;
+        if (isKinlendi &&
+            kinlendiTarget != null &&
+            !deadPlayers.contains(kinlendiTarget)) {
+          if (!protectedPlayers.contains(kinlendiTarget)) {
+            kinlendiKill = kinlendiTarget;
+            deadPlayers.add(kinlendiTarget);
+            debugPrint('💔 Kinlendi âşık $kinlendiTarget\'i öldürdü');
+          }
+          // Asık her şekilde ölür (kinlendi kill sonrası)
+          deadPlayers.add(asikActorId);
+          debugPrint('💔 Kinlendi âşık $asikActorId ölüyor');
+        }
+      }
+
+      // ÂŞIK HEDEFİ ÖLDÜ MÜ? (bu gece)
+      String? asikEffect; // 'intihar' | 'kinlendi' | 'deli_devir' | null
+      final savedTarget = asikActorId != null
+          ? (players[asikActorId]?['asikTarget'] as String?)
+          : null;
+      if (asikActorId != null &&
+          savedTarget != null &&
+          !deadPlayers.contains(asikActorId) &&
+          kinlendiKill != savedTarget) {
+        // Hedef bu gece öldü mü?
+        if (killedPlayer == savedTarget || kinlendiKill == savedTarget) {
+          // Hedef bu gece öldü, etki belirle
+          final targetRole = players[savedTarget]?['role'];
+          if (targetRole == 'vampir') {
+            deadPlayers.add(asikActorId);
+            asikEffect = 'intihar';
+            debugPrint('💔 Âşık $asikActorId vampir sevgilisini öldürtüp intihar etti');
+          } else if (targetRole == 'deli') {
+            asikEffect = 'deli_devir';
+            debugPrint('💔 Âşık $asikActorId deli sevgilisini yitirdi, deli oldu');
+          } else {
+            asikEffect = 'kinlendi';
+            debugPrint('💔 Âşık $asikActorId masum sevgilisini yitirdi, kinlendi');
+          }
+        } else if (!List<String>.from(roomData['deadPlayers'] ?? [])
+            .contains(savedTarget) &&
+            deadPlayers.contains(savedTarget)) {
+          // Hedef bu resolüsyonda yeni öldü
+          final targetRole = players[savedTarget]?['role'];
+          if (targetRole == 'vampir') {
+            deadPlayers.add(asikActorId);
+            asikEffect = 'intihar';
+            debugPrint('💔 Âşık $asikActorId vampir sevgilisini kaybetti (dış sebep)');
+          } else if (targetRole == 'deli') {
+            asikEffect = 'deli_devir';
+            debugPrint('💔 Âşık $asikActorId deli sevgilisini kaybetti');
+          } else {
+            asikEffect = 'kinlendi';
+            debugPrint('💔 Âşık $asikActorId sevgilisini kaybetti');
+          }
         }
       }
 
@@ -142,8 +222,8 @@ class NightResolutionService {
         debugPrint('👣 Takipçi $takipciTarget\'i takip etti: hedef $takipciResult');
       }
 
-      // SONUÇLARI KAYDET
-      await roomRef.update({
+      // ÂŞIK GÜNCELLEMELERİ
+      final updates = <String, dynamic>{
         'deadPlayers': deadPlayers,
         'currentPhase': 'day',
         'phaseTime': '09:00',
@@ -158,8 +238,32 @@ class NightResolutionService {
           'polis_visitors': polisVisitors,
           'takipci_target': takipciTarget,
           'takipci_result': takipciResult,
+          'asik_effect': asikEffect,
+          'kinlendi_kill': kinlendiKill,
         },
-      });
+      };
+
+      // Asık hedef ilk kez kaydedildiyse updates'e ekle
+      if (asikActorId != null &&
+          existingAsikTarget == null &&
+          asikTarget != null) {
+        updates['players.$asikActorId.asikTarget'] = asikTarget;
+      }
+
+      // Asık kinlendi efekti
+      if (asikEffect == 'kinlendi') {
+        updates['players.$asikActorId.asikKinlendi'] = true;
+      } else if (asikEffect == 'deli_devir') {
+        updates['players.$asikActorId.role'] = 'deli';
+      }
+
+      // Kinlendi kullanıldıysa temizle
+      if (players[asikActorId]?['asikKinlendi'] == true && kinlendiKill != null) {
+        updates['players.$asikActorId.asikKinlendi'] = false;
+      }
+
+      // SONUÇLARI KAYDET
+      await roomRef.update(updates);
 
       debugPrint('✅ Gece $nightNumber çözümlendi. Gündüz fazına geçildi.');
     } catch (e) {
@@ -260,6 +364,12 @@ class NightResolutionService {
       // Aksiyon göndermesi gereken GERÇEK oyuncular
       final requiredPlayers = alivePlayers.where((id) {
         final role = players[id]?['role'];
+        if (role == 'asik') {
+          // Asık: hedef zaten seçmişse veya kinlendi değilse aksiyonsuz geçebilir
+          final hasTarget = players[id]?['asikTarget'] != null;
+          final isKinlendi = players[id]?['asikKinlendi'] == true;
+          return !(hasTarget && !isKinlendi);
+        }
         return nightRoles.contains(role);
       }).toList();
 

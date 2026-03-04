@@ -76,8 +76,29 @@ class DayResolutionService {
         return;
       }
 
-      // OYUN DEVAM EDİYOR - SERBEST ZAMANA GEÇ
-      await roomRef.update({
+      // OYUN DEVAM EDİYOR - ÂŞIK GÜNDÜZ ELİMİNASYON ETKİSİ
+      // Elime edilen kişi asık'ın hedefiyse
+      final asikUpdates = <String, dynamic>{};
+      final alivePlayers =
+          players.keys.where((id) => !deadPlayers.contains(id)).toList();
+
+      for (var asikId in alivePlayers) {
+        if (players[asikId]?['role'] == 'asik' &&
+            players[asikId]?['asikTarget'] == eliminatedId) {
+          if (eliminatedRole == 'vampir') {
+            deadPlayers.add(asikId); // İntihar
+            asikUpdates['players.$asikId.asikEffect'] = 'intihar_gunduz';
+            debugPrint('💔 Âşık $asikId vampir hedefini gündüz yitirdi, intihar etti');
+          } else if (eliminatedRole != 'deli') {
+            // Deli elimine olursa oyun zaten biter buraya gelinemez
+            asikUpdates['players.$asikId.asikKinlendi'] = true;
+            debugPrint('💔 Âşık $asikId masum hedefini gündüz yitirdi, kinlendi');
+          }
+        }
+      }
+
+      // SERBEST ZAMANA GEÇ
+      final finalUpdates = <String, dynamic>{
         'deadPlayers': deadPlayers,
         'dayVotes': {},
         'votingStarted': false,
@@ -87,7 +108,22 @@ class DayResolutionService {
           'name': players[eliminatedId]?['username'] ?? '?',
           'timestamp': FieldValue.serverTimestamp(),
         },
-      });
+      };
+
+      // Asık güncellemelerini ekle
+      finalUpdates.addAll(asikUpdates);
+
+      // Asık intiharının oyunu bitirip bitmediğini kontrol et
+      if (asikUpdates.isNotEmpty) {
+        final newWinner = _checkWinCondition(players, deadPlayers, null);
+        if (newWinner != null) {
+          debugPrint('🏆 Asık intiharından sonra oyun bitti! Kazanan: $newWinner');
+          await _endGame(roomRef, newWinner, players, deadPlayers);
+          return;
+        }
+      }
+
+      await roomRef.update(finalUpdates);
     } catch (e) {
       debugPrint('❌ Oylama çözümleme hatası: $e');
     }

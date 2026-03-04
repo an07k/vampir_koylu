@@ -104,10 +104,10 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  void _showNightResultPopup(String? killedName) {
+  void _showNightResultPopup(String? killedName, {Map<String, dynamic>? nightResults}) {
     final String emoji;
     final String title;
-    final String message;
+    final List<String> messages = [];
 
     if (killedName != null) {
       emoji = '🩸';
@@ -121,7 +121,7 @@ class _GameScreenState extends State<GameScreen> {
         '$killedName köy meydanında ölü bulundu.',
         '$killedName\'in şansı bu gece tükendi.',
       ];
-      message = deathMessages[Random().nextInt(deathMessages.length)];
+      messages.add(deathMessages[Random().nextInt(deathMessages.length)]);
     } else {
       emoji = '🌙';
       title = 'SABAH HABERLERİ';
@@ -132,8 +132,29 @@ class _GameScreenState extends State<GameScreen> {
         'Köy bir gece daha ayakta.',
         'Bu sabah herkes gözlerini açtı.',
       ];
-      message = peaceMessages[Random().nextInt(peaceMessages.length)];
+      messages.add(peaceMessages[Random().nextInt(peaceMessages.length)]);
     }
+
+    // ÂŞIK EFEKTLERİ
+    if (nightResults != null) {
+      final asikEffect = nightResults['asik_effect'] as String?;
+      final kinlendiKill = nightResults['kinlendi_kill'] as String?;
+
+      if (asikEffect == 'intihar') {
+        messages.add('💔 Âşık aşkının ölümüne dayanamayıp intihar etti!');
+      } else if (asikEffect == 'kinlendi') {
+        messages.add('💔 Âşık sevgilisini yitirdi ve kinlendi...');
+      } else if (asikEffect == 'deli_devir') {
+        messages.add('💔 Âşık sevgilisini yitirdi ve deli oldu!');
+      }
+
+      if (kinlendiKill != null) {
+        final kinlendiName = (nightResults['kinlendi_name'] as String?) ?? 'bilinmeyen';
+        messages.add('🔥 Kinlendi âşık $kinlendiName\'i intikam için öldürdü!');
+      }
+    }
+
+    final message = messages.join('\n');
 
     showDialog(
       context: context,
@@ -623,6 +644,156 @@ class _GameScreenState extends State<GameScreen> {
 
     // GECE FAZI
     if (currentPhase == 'night') {
+      // ÂŞIK ÖZEL KONTROL
+      if (myRole == 'asik') {
+        final asikTarget = players[_userId]?['asikTarget'];
+        final isKinlendi = players[_userId]?['asikKinlendi'] == true;
+
+        if (asikTarget != null && !isKinlendi) {
+          // Hedef seçildi, bekliyoruz
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.pink.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.pink),
+              ),
+              child: const Text(
+                '💘 Aşığını seçtiniz. Kaderinizi bekliyorsunuz...',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.pink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          );
+        } else if (isKinlendi) {
+          // Kinlendi kill UI
+          if (hasSubmitted) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: const Text(
+                  '✓ Kurbanını seçtin. Intikamın alınacak...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final availableTargets = players.keys
+              .where((id) => id != _userId && !deadPlayers.contains(id))
+              .toList();
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 60,
+              child: ElevatedButton(
+                onPressed: () {
+                  _showTargetSelection(
+                    availableTargets,
+                    players,
+                    deadPlayers,
+                    roleColor,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: const Text(
+                  '💔 KİNLENDİ — Kurbanını Seç',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else {
+          // Henüz seçmemiş: aşık seçim UI
+          if (hasSubmitted) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: const Text(
+                  '✓ Aksiyonun gönderildi. Diğer oyuncular bekleniyor...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final availableTargets = players.keys
+              .where((id) => id != _userId && !deadPlayers.contains(id))
+              .toList();
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 60,
+              child: ElevatedButton(
+                onPressed: () {
+                  _showTargetSelection(
+                    availableTargets,
+                    players,
+                    deadPlayers,
+                    roleColor,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: roleColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: const Text(
+                  'Aşığını Seç 💘',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+      }
+
       // Gece aksiyonu olmayan roller
       if (myRole == 'koylu' || myRole == 'deli' || myRole == 'manipulator') {
         return Padding(
@@ -1020,8 +1191,13 @@ class _GameScreenState extends State<GameScreen> {
               if (killedId != null) {
                 killedName = players[killedId]?['username'] as String?;
               }
+              // Kinlendi kill için oyuncu adı ekle
+              final kinlendiKill = nightResults['kinlendi_kill'] as String?;
+              if (kinlendiKill != null && nightResults['kinlendi_name'] == null) {
+                nightResults['kinlendi_name'] = players[kinlendiKill]?['username'] as String?;
+              }
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) _showNightResultPopup(killedName);
+                if (mounted) _showNightResultPopup(killedName, nightResults: nightResults);
               });
             }
           }
