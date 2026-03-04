@@ -44,11 +44,18 @@ class DayResolutionService {
           voteCounts.entries.where((e) => e.value == maxVotes).toList();
 
       if (victims.length > 1) {
+        final tiedPlayerNames = victims
+            .map((e) => players[e.key]?['username'] ?? '?')
+            .toList();
         debugPrint('⚠️ Berabere! Kimse öldürülmedi: ${victims.map((e) => e.key).join(', ')}');
         await roomRef.update({
           'dayVotes': {},
           'votingStarted': false,
           'phaseStartTimestamp': FieldValue.serverTimestamp(),
+          'lastTie': {
+            'tiedPlayers': tiedPlayerNames,
+            'timestamp': FieldValue.serverTimestamp(),
+          },
         });
         return;
       }

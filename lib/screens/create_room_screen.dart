@@ -60,38 +60,62 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       final displayName = user['displayName'];
       final avatarColor = user['avatarColor'];
 
-      // Odayı Firestore'a kaydet
-      await FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(_roomCode)
-          .set({
-        'roomCode': _roomCode,
-        'hostId': userId,
-        'hostUsername': displayName,
-        'password': _passwordController.text.isEmpty ? null : _passwordController.text,
-        'maxPlayers': _playerCount,
-        'playerCount': 1,
-        'gameMode': _gameMode,
-        'gameState': 'waiting',
-        'players': {
-          userId: {
-            'username': displayName,
-            'avatarColor': avatarColor,
-            'isHost': true,
-            'joinedAt': FieldValue.serverTimestamp(),
-          }
-        },
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      // Çakışmayı önlemek için transaction ile "create-only" semantiği
+      bool created = false;
+      String codeToUse = _roomCode;
 
-      debugPrint('✅ Oda oluşturuldu: $_roomCode');
+      for (int attempt = 0; attempt < 5; attempt++) {
+        final roomRef = FirebaseFirestore.instance
+            .collection('rooms')
+            .doc(codeToUse);
+
+        created = await FirebaseFirestore.instance.runTransaction((tx) async {
+          final snap = await tx.get(roomRef);
+          if (snap.exists) return false; // Kod çakışıyor, yeni kod dene
+
+          tx.set(roomRef, {
+            'roomCode': codeToUse,
+            'hostId': userId,
+            'hostUsername': displayName,
+            'password': _passwordController.text.isEmpty ? null : _passwordController.text,
+            'maxPlayers': _playerCount,
+            'playerCount': 1,
+            'gameMode': _gameMode,
+            'gameState': 'waiting',
+            'players': {
+              userId: {
+                'username': displayName,
+                'avatarColor': avatarColor,
+                'isHost': true,
+                'joinedAt': FieldValue.serverTimestamp(),
+              }
+            },
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+          return true;
+        });
+
+        if (created) break;
+
+        // Çakışma → yeni kod üret ve tekrar dene
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        final random = Random();
+        codeToUse = List.generate(6, (_) => chars[random.nextInt(chars.length)]).join();
+        setState(() => _roomCode = codeToUse);
+      }
+
+      if (!created) {
+        throw Exception('Oda kodu oluşturulamadı, lütfen tekrar deneyin.');
+      }
+
+      debugPrint('✅ Oda oluşturuldu: $codeToUse');
 
       // Oda bekleme alanına git
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => RoomLobbyScreen(roomCode: _roomCode),
+            builder: (context) => RoomLobbyScreen(roomCode: codeToUse),
           ),
         );
       }

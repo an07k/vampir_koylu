@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'package:vampir_koylu/screens/welcome_screen.dart';
 import 'screens/create_room_screen.dart';
@@ -29,6 +30,9 @@ class VampirKoyluApp extends StatelessWidget {
         colorScheme: ColorScheme.dark(
           primary: const Color(0xFF8B0000),
           secondary: const Color(0xFFDC143C),
+        ),
+        textTheme: GoogleFonts.interTextTheme(
+          ThemeData.dark().textTheme,
         ),
       ),
       home: const AuthChecker(),

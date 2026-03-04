@@ -100,33 +100,6 @@ class RoleDistribution {
     return assignedRoles;
   }
 
-// TEST ETMEK İÇİN
-  static void testRoles() {
-  debugPrint('\n========== ROL DAĞILIMI TEST ==========\n');
-
-  for (int i = 6; i <= 15; i++) {
-    // Klasik mod test
-    final classicRoles = calculateRoles(i, 'classic');
-    debugPrint('--- $i Kişi (Klasik) ---');
-    debugPrint('Vampir:    ${classicRoles['vampir']}');
-    debugPrint('Doktor:    ${classicRoles['doktor']}');
-    debugPrint('Köylü:     ${classicRoles['koylu']}');
-    debugPrint('');
-
-    // Egzantrik mod test
-    final eccentricRoles = calculateRoles(i, 'eccentric');
-    final selectedRoles = selectEccentricRoles(eccentricRoles['egzantrik']!);
-    debugPrint('--- $i Kişi (Egzantrik) ---');
-    debugPrint('Vampir:    ${eccentricRoles['vampir']}');
-    debugPrint('Doktor:    ${eccentricRoles['doktor']}');
-    debugPrint('Egzantrik: ${eccentricRoles['egzantrik']} → $selectedRoles');
-    debugPrint('Köylü:     ${eccentricRoles['koylu']}');
-    debugPrint('');
-  }
-
-  debugPrint('========================================\n');
-}
-
   // FIRESTORE'A ROL KAYDET
   static Future<void> saveRoles(
       String roomCode, Map<String, String> assignedRoles) async {

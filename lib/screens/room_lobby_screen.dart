@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/role_distribution.dart';
 import '../services/auth_service.dart';
-import '../services/gold_service.dart';
 import 'role_reveal_screen.dart';
 
 class RoomLobbyScreen extends StatefulWidget {
@@ -240,9 +240,6 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
       // Firestore'a kaydet
       await RoleDistribution.saveRoles(widget.roomCode, assignedRoles);
 
-      // Host kadergamer123 ise bonus gold dağıt
-      await GoldService.awardGameStartBonus(widget.roomCode);
-
       debugPrint('✅ Oyun başlatıldı! Roller dağıtıldı.');
 
       if (mounted) {
@@ -338,7 +335,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                 end: Alignment.bottomCenter,
                 colors: [
                   const Color(0xFF1A1A1A),
-                  const Color(0xFF8B0000).withOpacity(0.3),
+                  const Color(0xFF8B0000).withValues(alpha:0.3),
                 ],
               ),
             ),
@@ -370,7 +367,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -388,7 +385,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -420,7 +417,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha:0.05),
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: Row(
@@ -467,7 +464,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFD700).withOpacity(0.2),
+                                  color: const Color(0xFFFFD700).withValues(alpha:0.2),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
                                     color: const Color(0xFFFFD700),
@@ -550,8 +547,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                         ),
                       if (isHost) const SizedBox(height: 10),
 
-                      // Bot Ekle (sadece host görür)
-                      if (isHost)
+                      // Bot Ekle (sadece host, sadece debug modda)
+                      if (isHost && kDebugMode)
                         SizedBox(
                           width: double.infinity,
                           height: 60,

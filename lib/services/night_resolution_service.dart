@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'gold_service.dart';
 
 class NightResolutionService {
   // GECE ÇÖZÜMLEMESI
@@ -27,12 +28,20 @@ class NightResolutionService {
       final alivePlayers =
           players.keys.where((id) => !deadPlayers.contains(id)).toList();
 
-      // Rol-hedef mapping
-      final roleActions = <String, String>{};
+      // Her rol için actor ve hedef bul (doktor çoklu olabilir)
+      final roleActors = <String, String>{}; // role → actorId
+      final roleTargets = <String, String>{}; // role → target
+      final doctorActions = <String, String>{}; // doctorActorId → target
+
       for (var playerId in nightActions.keys) {
         final playerRole = players[playerId]?['role'];
-        if (playerRole != null) {
-          roleActions[playerRole] = nightActions[playerId];
+        if (playerRole == null) continue;
+
+        if (playerRole == 'doktor') {
+          doctorActions[playerId] = nightActions[playerId] as String;
+        } else {
+          roleActors[playerRole] = playerId;
+          roleTargets[playerRole] = nightActions[playerId] as String;
         }
       }
 
@@ -41,7 +50,7 @@ class NightResolutionService {
       final vampirVotes = <String, int>{};
       for (var playerId in nightActions.keys) {
         if (players[playerId]?['role'] == 'vampir') {
-          final target = nightActions[playerId];
+          final target = nightActions[playerId] as String;
           vampirVotes[target] = (vampirVotes[target] ?? 0) + 1;
         }
       }
@@ -51,62 +60,68 @@ class NightResolutionService {
             .key;
       }
 
-      // MİSAFİR ENGELLEMESİ
-      final misafirTarget = roleActions['misafir'];
+      // MİSAFİR ENGELLEMESİ — misafirin ziyaret ettiği oyuncu aksiyon yapamaz
+      final misafirTarget = roleTargets['misafir'];
       final blockedPlayers = <String>{};
       if (misafirTarget != null) {
         blockedPlayers.add(misafirTarget);
         debugPrint('🏠 Misafir $misafirTarget\'i engelledi');
       }
 
-      // DOKTOR KORUMASI
-      final doktorTarget = roleActions['doktor'];
-      final protectedPlayer =
-          (doktorTarget != null && !blockedPlayers.contains(doktorTarget))
-              ? doktorTarget
-              : null;
-
-      if (protectedPlayer != null) {
-        debugPrint('🏥 Doktor $protectedPlayer\'i korudu');
+      // DOKTOR KORUMASI — her doktor için kontrol et, doktor kendisi engellenmemişse koruma geçerli
+      final protectedPlayers = <String>{};
+      for (var doktorActorId in doctorActions.keys) {
+        if (!blockedPlayers.contains(doktorActorId)) {
+          final target = doctorActions[doktorActorId]!;
+          protectedPlayers.add(target);
+          debugPrint('🏥 Doktor $doktorActorId, $target\'i korudu');
+        }
       }
 
       // VAMPİR ÖLDÜRME
       String? killedPlayer;
       if (vampirTarget != null) {
-        // Vampirler engellenmemişse ve hedef korunmamışsa
         final vampirsBlocked = alivePlayers
             .where((id) => players[id]?['role'] == 'vampir')
             .any((id) => blockedPlayers.contains(id));
 
-        if (!vampirsBlocked && vampirTarget != protectedPlayer) {
+        if (!vampirsBlocked && !protectedPlayers.contains(vampirTarget)) {
           killedPlayer = vampirTarget;
           deadPlayers.add(killedPlayer);
           debugPrint('🧛 Vampirler $killedPlayer\'i öldürdü');
-        } else if (vampirTarget == protectedPlayer) {
+        } else if (protectedPlayers.contains(vampirTarget)) {
           debugPrint('🏥 Doktor $vampirTarget\'i kurtardı!');
+        }
+      }
+
+      // GECE ÖLDÜRMESINDEN SONRA KAZANMA KONTROLÜ
+      if (killedPlayer != null) {
+        final winner = _checkWinCondition(players, deadPlayers);
+        if (winner != null) {
+          debugPrint('🏆 Gece öldürmesiyle oyun bitti! Kazanan: $winner');
+          await _endGame(roomRef, winner, players, deadPlayers);
+          return;
         }
       }
 
       // DETEKTİF SORUŞTURMA
       String? dedektifResult;
-      final dedektifTarget = roleActions['dedektif'];
+      final dedektifTarget = roleTargets['dedektif'];
+      final dedektifActorId = roleActors['dedektif'];
       if (dedektifTarget != null &&
-          !blockedPlayers.contains(
-              players.keys.firstWhere((id) => roleActions['dedektif'] != null,
-                  orElse: () => ''))) {
-        final targetRole = players[dedektifTarget]?['role'];
-        dedektifResult = targetRole;
-        debugPrint('🔍 Detektif $dedektifTarget\'in rolünü öğrendi: $targetRole');
+          dedektifActorId != null &&
+          !blockedPlayers.contains(dedektifActorId)) {
+        dedektifResult = players[dedektifTarget]?['role'];
+        debugPrint('🔍 Detektif $dedektifTarget\'in rolünü öğrendi: $dedektifResult');
       }
 
       // POLİS NÖBET
       List<String>? polisVisitors;
-      final polisTarget = roleActions['polis'];
+      final polisTarget = roleTargets['polis'];
+      final polisActorId = roleActors['polis'];
       if (polisTarget != null &&
-          !blockedPlayers.contains(
-              players.keys.firstWhere((id) => roleActions['polis'] != null,
-                  orElse: () => ''))) {
-        // Polis'in izlediği eve kim gitti?
+          polisActorId != null &&
+          !blockedPlayers.contains(polisActorId)) {
         polisVisitors = nightActions.entries
             .where((entry) =>
                 entry.value == polisTarget &&
@@ -118,15 +133,13 @@ class NightResolutionService {
 
       // TAKİPÇİ
       String? takipciResult;
-      final takipciTarget = roleActions['takipci'];
+      final takipciTarget = roleTargets['takipci'];
+      final takipciActorId = roleActors['takipci'];
       if (takipciTarget != null &&
-          !blockedPlayers.contains(
-              players.keys.firstWhere((id) => roleActions['takipci'] != null,
-                  orElse: () => ''))) {
-        // Takipçinin izlediği kişi nereye gitti?
-        takipciResult = nightActions[takipciTarget];
-        debugPrint(
-            '👣 Takipçi $takipciTarget\'i takip etti: hedef $takipciResult');
+          takipciActorId != null &&
+          !blockedPlayers.contains(takipciActorId)) {
+        takipciResult = nightActions[takipciTarget] as String?;
+        debugPrint('👣 Takipçi $takipciTarget\'i takip etti: hedef $takipciResult');
       }
 
       // SONUÇLARI KAYDET
@@ -152,6 +165,64 @@ class NightResolutionService {
     } catch (e) {
       debugPrint('❌ Gece çözümleme hatası: $e');
     }
+  }
+
+  // KAZANMA KOŞULU KONTROL
+  static String? _checkWinCondition(
+    Map<String, dynamic> players,
+    List<String> deadPlayers,
+  ) {
+    final alivePlayers =
+        players.keys.where((id) => !deadPlayers.contains(id)).toList();
+
+    int vampirCount = 0;
+    int townCount = 0;
+    for (var id in alivePlayers) {
+      if (players[id]?['role'] == 'vampir') {
+        vampirCount++;
+      } else {
+        townCount++;
+      }
+    }
+
+    if (vampirCount == 0) return 'koylu';
+    if (vampirCount >= townCount) return 'vampir';
+    return null;
+  }
+
+  // OYUNU BİTİR
+  static Future<void> _endGame(
+    DocumentReference roomRef,
+    String winner,
+    Map<String, dynamic> players,
+    List<String> deadPlayers,
+  ) async {
+    final winnerIds = <String>[];
+    if (winner == 'vampir') {
+      for (var id in players.keys) {
+        if (!deadPlayers.contains(id) && players[id]?['role'] == 'vampir') {
+          winnerIds.add(id);
+        }
+      }
+    } else if (winner == 'koylu') {
+      for (var id in players.keys) {
+        if (!deadPlayers.contains(id) && players[id]?['role'] != 'vampir') {
+          winnerIds.add(id);
+        }
+      }
+    }
+
+    await GoldService.awardWinGold(winnerIds);
+
+    await roomRef.update({
+      'gameState': 'finished',
+      'winner': winner,
+      'winnerIds': winnerIds,
+      'currentPhase': 'finished',
+      'deadPlayers': deadPlayers,
+    });
+
+    debugPrint('🏆 Oyun bitti (gece). Kazanan: $winner, Kazananlar: $winnerIds');
   }
 
   // TÜM AKSIYONLAR GÖNDERİLDİ Mİ?

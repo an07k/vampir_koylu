@@ -27,6 +27,9 @@ class _GameScreenState extends State<GameScreen> {
   bool _hasAutoStartedVoting = false;
   bool _hasAutoVotedBots = false;
   String? _lastShownEliminatedId; // Popup için: hangi elimeyi zaten gösterdik
+  int? _lastShownNightResultsNumber; // Gece sonucu popup'ı için
+  bool _hasAutoActedBotsNight = false;
+  int? _lastShownTieTimestamp; // Beraberlik popup'ı için
 
   @override
   void initState() {
@@ -44,6 +47,17 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showEliminatedPopup(String name) {
+    final messages = [
+      '$name köyden kovuldu!',
+      '$name infaz edildi!',
+      '$name karşı köye gönderildi!',
+      '$name halk mahkemesinde yargılandı!',
+      '$name köyün adaletine kurban gitti!',
+      '$name ipini çekti!',
+      '$name köy meydanında hesap verdi!',
+    ];
+    final message = messages[Random().nextInt(messages.length)];
+
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -53,7 +67,7 @@ class _GameScreenState extends State<GameScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('☠️', style: TextStyle(fontSize: 60)),
+            const Text('⚖️', style: TextStyle(fontSize: 60)),
             const SizedBox(height: 16),
             const Text(
               'OYLAMA SONUCU',
@@ -63,25 +77,166 @@ class _GameScreenState extends State<GameScreen> {
                 letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              name,
+              message,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 26,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'öldürüldü!',
-              style: TextStyle(color: Colors.red, fontSize: 16),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade800,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('TAMAM',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNightResultPopup(String? killedName) {
+    final String emoji;
+    final String title;
+    final String message;
+
+    if (killedName != null) {
+      emoji = '🩸';
+      title = 'SABAH HABERLERİ';
+      final deathMessages = [
+        '$killedName evinde ölü bulundu.',
+        '$killedName tahtalı köye gitti.',
+        '$killedName sabah ezanını duymadı.',
+        'Sabah $killedName\'den ses çıkmadı.',
+        '$killedName geceyi atlatamadı.',
+        '$killedName köy meydanında ölü bulundu.',
+        '$killedName\'in şansı bu gece tükendi.',
+      ];
+      message = deathMessages[Random().nextInt(deathMessages.length)];
+    } else {
+      emoji = '🌙';
+      title = 'SABAH HABERLERİ';
+      final peaceMessages = [
+        'Bu gece kimse ölmedi.',
+        'Köy huzurla uyudu.',
+        'Vampirler bu gece boş döndü.',
+        'Köy bir gece daha ayakta.',
+        'Bu sabah herkes gözlerini açtı.',
+      ];
+      message = peaceMessages[Random().nextInt(peaceMessages.length)];
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 60)),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: killedName != null ? Colors.red.shade300 : Colors.green.shade300,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: killedName != null
+                    ? Colors.red.shade900
+                    : Colors.green.shade900,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('TAMAM',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTiePopup(List<String> tiedPlayers) {
+    final tieMessages = [
+      'Oylar ayrılı, kimse öldürülemedi!',
+      'Berabere kalmış oylar!',
+      'Köy ikiye bölündü!',
+      'Oy sayımında çetin bir beraberlik!',
+      'Halk karar veremiyor!',
+    ];
+    final message = tieMessages[Random().nextInt(tieMessages.length)];
+    final playerList = tiedPlayers.join(' ve ');
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('⚖️', style: TextStyle(fontSize: 60)),
+            const SizedBox(height: 16),
+            const Text(
+              'OYLAMA SONUCU',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.amber,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              playerList,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber.shade900,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
@@ -175,6 +330,35 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  // BOT GECE AKSİYONU (Sadece host tetikler)
+  Future<void> _submitBotNightActions(
+    Map<String, dynamic> players,
+    List<String> deadPlayers,
+  ) async {
+    const nightRoles = ['vampir', 'doktor', 'dedektif', 'misafir', 'polis', 'takipci', 'asik'];
+    final nightRoleBots = players.keys.where((id) {
+      if (!id.startsWith('bot_')) return false;
+      if (deadPlayers.contains(id)) return false;
+      return nightRoles.contains(players[id]?['role']);
+    }).toList();
+
+    if (nightRoleBots.isEmpty) return;
+
+    final random = Random();
+    for (final botId in nightRoleBots) {
+      final possibleTargets = players.keys
+          .where((id) => id != botId && !deadPlayers.contains(id))
+          .toList();
+      if (possibleTargets.isEmpty) continue;
+
+      final targetId = possibleTargets[random.nextInt(possibleTargets.length)];
+      await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(widget.roomCode)
+          .update({'nightActions.$botId': targetId});
+    }
+  }
+
   bool _shouldAutoStartVoting(Timestamp? phaseStartTimestamp) {
     if (phaseStartTimestamp == null) return false;
 
@@ -196,16 +380,16 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   // GECE AKSİYONU SUBMIT
-  Future<void> _submitNightAction(String targetId) async {
+  Future<void> _submitNightAction(String targetId, {Map<String, dynamic>? extraUpdates}) async {
     if (_userId == null) return;
 
     try {
+      final updates = <String, dynamic>{'nightActions.$_userId': targetId};
+      if (extraUpdates != null) updates.addAll(extraUpdates);
       await FirebaseFirestore.instance
           .collection('rooms')
           .doc(widget.roomCode)
-          .update({
-        'nightActions.$_userId': targetId,
-      });
+          .update(updates);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -266,8 +450,9 @@ class _GameScreenState extends State<GameScreen> {
     List<String> availableTargets,
     Map<String, dynamic> players,
     List<String> deadPlayers,
-    Color roleColor,
-  ) {
+    Color roleColor, {
+    Map<String, dynamic> Function(String targetId)? extraUpdates,
+  }) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF2A2A2A),
@@ -308,7 +493,7 @@ class _GameScreenState extends State<GameScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        _submitNightAction(targetId);
+                        _submitNightAction(targetId, extraUpdates: extraUpdates?.call(targetId));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white.withValues(alpha:0.1),
@@ -494,10 +679,12 @@ class _GameScreenState extends State<GameScreen> {
           height: 60,
           child: ElevatedButton(
             onPressed: () {
-              // Hedef seçilebilecek oyuncular (canlı, kendisi değil)
-              final availableTargets = players.keys
-                  .where((id) => id != _userId && !deadPlayers.contains(id))
-                  .toList();
+              final selfProtectUsed = players[_userId]?['selfProtectUsed'] == true;
+              // Doktor kendini bir kez koruyabilir, diğer roller kendini seçemez
+              final availableTargets = players.keys.where((id) {
+                if (id == _userId) return myRole == 'doktor' && !selfProtectUsed;
+                return !deadPlayers.contains(id);
+              }).toList();
 
               if (availableTargets.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -514,6 +701,11 @@ class _GameScreenState extends State<GameScreen> {
                 players,
                 deadPlayers,
                 roleColor,
+                extraUpdates: myRole == 'doktor'
+                    ? (targetId) => targetId == _userId
+                        ? {'players.$_userId.selfProtectUsed': true}
+                        : {}
+                    : null,
               );
             },
             style: ElevatedButton.styleFrom(
@@ -816,6 +1008,23 @@ class _GameScreenState extends State<GameScreen> {
           final dayVotes = Map<String, dynamic>.from(roomData['dayVotes'] ?? {});
           final votingStarted = roomData['votingStarted'] ?? false;
           final lastEliminated = roomData['lastEliminated'] as Map<String, dynamic>?;
+          final nightResults = roomData['nightResults'] as Map<String, dynamic>?;
+
+          // Gece sonucu popup'ı - yeni bir gece çözümü varsa göster
+          if (nightResults != null) {
+            final nightResultNumber = nightResults['nightNumber'] as int?;
+            if (nightResultNumber != null && nightResultNumber != _lastShownNightResultsNumber) {
+              _lastShownNightResultsNumber = nightResultNumber;
+              final killedId = nightResults['killed'] as String?;
+              String? killedName;
+              if (killedId != null) {
+                killedName = players[killedId]?['username'] as String?;
+              }
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _showNightResultPopup(killedName);
+              });
+            }
+          }
 
           // Kim öldü popup'ı - yeni bir eliminasyon varsa göster
           if (lastEliminated != null) {
@@ -825,6 +1034,19 @@ class _GameScreenState extends State<GameScreen> {
               final eliminatedName = lastEliminated['name'] as String? ?? '?';
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) _showEliminatedPopup(eliminatedName);
+              });
+            }
+          }
+
+          // Beraberlik popup'ı - yeni bir beraberlik varsa göster
+          final lastTie = roomData['lastTie'] as Map<String, dynamic>?;
+          if (lastTie != null) {
+            final tieTimestamp = (lastTie['timestamp'] as Timestamp?)?.millisecondsSinceEpoch;
+            if (tieTimestamp != null && tieTimestamp != _lastShownTieTimestamp) {
+              _lastShownTieTimestamp = tieTimestamp;
+              final tiedPlayers = List<String>.from(lastTie['tiedPlayers'] ?? []);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && tiedPlayers.isNotEmpty) _showTiePopup(tiedPlayers);
               });
             }
           }
@@ -839,6 +1061,16 @@ class _GameScreenState extends State<GameScreen> {
             }
           } else if (currentPhase != 'day') {
             _hasAutoStartedVoting = false;
+          }
+
+          // Bot gece aksiyonları - gece başladığında host otomatik gönderir
+          if (currentPhase == 'night' && hostId == _userId && !_hasAutoActedBotsNight) {
+            _hasAutoActedBotsNight = true;
+            Future.delayed(const Duration(milliseconds: 500), () async {
+              await _submitBotNightActions(players, deadPlayers);
+            });
+          } else if (currentPhase == 'day') {
+            _hasAutoActedBotsNight = false;
           }
 
           // Bot oylaması - oylama başladığında host otomatik bot oylarını gönderir
@@ -1010,7 +1242,10 @@ class _GameScreenState extends State<GameScreen> {
                               final allSubmitted = await NightResolutionService
                                   .areAllActionsSubmitted(widget.roomCode);
 
-                              if (!allSubmitted && mounted) {
+                              if (!mounted) return;
+
+                              if (!allSubmitted) {
+                                // ignore: use_build_context_synchronously
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
@@ -1025,14 +1260,15 @@ class _GameScreenState extends State<GameScreen> {
                               await NightResolutionService.resolveNight(
                                   widget.roomCode);
 
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Gece çözümlendi! Gündüz başladı.'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              }
+                              if (!mounted) return;
+
+                              // ignore: use_build_context_synchronously
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Gece çözümlendi! Gündüz başladı.'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.purple,
@@ -1101,25 +1337,25 @@ class _GameScreenState extends State<GameScreen> {
                               if (votingStarted) {
                                 // Oylamayı sonuçlandır → serbest zamana geç
                                 await DayResolutionService.resolveVoting(widget.roomCode);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Oylama sonuçlandı! Serbest zaman başladı.'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
+                                if (!mounted) return;
+                                // ignore: use_build_context_synchronously
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Oylama sonuçlandı! Serbest zaman başladı.'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
                               } else {
                                 // Serbest zamanı bitir → geceye geç
                                 await DayResolutionService.advanceToNight(widget.roomCode);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Gece başladı!'),
-                                      backgroundColor: Colors.purple,
-                                    ),
-                                  );
-                                }
+                                if (!mounted) return;
+                                // ignore: use_build_context_synchronously
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Gece başladı!'),
+                                    backgroundColor: Colors.purple,
+                                  ),
+                                );
                               }
                             },
                             style: ElevatedButton.styleFrom(
@@ -1203,9 +1439,9 @@ class _GameScreenState extends State<GameScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'OYUNCULAR',
-                            style: TextStyle(
+                          Text(
+                            'OYUNCULAR (${players.length - deadPlayers.length}/${players.length} Canlı)',
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.white70,

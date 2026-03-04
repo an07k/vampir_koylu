@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ROOMS — game rooms created and managed by players
+    // No Firebase Auth in this app; room access is controlled at the app level
+    match /rooms/{roomCode} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['hostId', 'gameMode', 'gameState', 'createdAt']);
+      allow update: if resource.data.gameState != null;
+      allow delete: if true;
+    }
+
+    // USERS — player profiles and gold balances
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // GUESTS — temporary guest sessions
+    match /guests/{guestId} {
+      allow read, write: if true;
+    }
+
+    // GAME HISTORY — post-game records (read-only for clients, written by host)
+    match /game_history/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

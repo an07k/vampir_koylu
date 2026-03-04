@@ -3,8 +3,6 @@ import 'package:flutter/foundation.dart';
 
 class GoldService {
   static const int winReward = 10;
-  static const int hostBonus = 5;
-  static const String bonusNickname = 'kadergamer123';
 
   // GOLD EKLE
   static Future<void> addGold(String userId, int amount) async {
@@ -33,54 +31,6 @@ class GoldService {
     } catch (e) {
       debugPrint('❌ Gold alma hatası: $e');
       return 0;
-    }
-  }
-
-  // OYU BAŞLAMA BONUSU — Host @kadergamer123 ise herkese 5 gold
-  static Future<void> awardGameStartBonus(String roomCode) async {
-    try {
-      final roomDoc = await FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(roomCode)
-          .get();
-
-      if (!roomDoc.exists) return;
-
-      final roomData = roomDoc.data()!;
-      final hostId = roomData['hostId'] as String;
-
-      // Host'un nickname'ini kontrol et
-      final hostDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(hostId)
-          .get();
-
-      if (!hostDoc.exists) return;
-      final hostNickname = hostDoc.data()!['nickname'] as String;
-
-      if (hostNickname != bonusNickname) return;
-
-      // Host kadergamer123 → tüm real oyunculara bonus ver
-      final players = roomData['players'] as Map<String, dynamic>;
-
-      for (final playerId in players.keys) {
-        // Bot ve host hariç
-        if (playerId.startsWith('bot_') || playerId == hostId) continue;
-
-        // Users koleksiyonunda var mı kontrol (guest olmayan)
-        final playerDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(playerId)
-            .get();
-
-        if (playerDoc.exists) {
-          await addGold(playerId, hostBonus);
-        }
-      }
-
-      debugPrint('✅ kadergamer123 bonus dağıtıldı');
-    } catch (e) {
-      debugPrint('❌ Bonus dağıtım hatası: $e');
     }
   }
 

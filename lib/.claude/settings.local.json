@@ -5,7 +5,11 @@
       "Bash(flutter run:*)",
       "Bash(flutter build:*)",
       "Bash(dir:*)",
-      "Bash(flutter precache:*)"
+      "Bash(flutter precache:*)",
+      "Bash(flutter analyze --no-fatal-infos)",
+      "Bash(flutter analyze:*)",
+      "Bash(grep:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

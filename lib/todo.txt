@@ -6,8 +6,5 @@
 
 todo :
 
-- Birkaç hesap aynı anda girip rol sistemini halletmek
-- Firebase'de tutulan odaları user'ları silecek miyiz falan muhabbeti.
-- Oylama bittiğinde kim elendi bildirimi
 - Saat sistemini oturtmak
 - Ölüler için bir sohbet odası
