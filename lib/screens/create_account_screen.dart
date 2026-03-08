@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -301,8 +302,42 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
 
+                // GİZLİLİK POLİTİKASI
+                Center(
+                        child: Wrap(
+                          alignment: WrapAlignment.center,
+                          children: [
+                            const Text(
+                              'Hesap oluşturarak ',
+                              style: TextStyle(color: Colors.white54, fontSize: 13),
+                            ),
+                            GestureDetector(
+                              onTap: () async {
+                                final uri = Uri.parse('https://an07k.github.io/moderateit-privacy/');
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              child: const Text(
+                                'Gizlilik Politikası',
+                                style: TextStyle(
+                                  color: Color(0xFFDC143C),
+                                  fontSize: 13,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                            const Text(
+                              '\'nı kabul etmiş sayılırsınız.',
+                              style: TextStyle(color: Colors.white54, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                const SizedBox(height: 16),
+                
                 // OLUŞTUR BUTONU
                 SizedBox(
                   width: double.infinity,

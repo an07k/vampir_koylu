@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'create_account_screen.dart';
 import 'login_account_screen.dart';
 import 'guest_login_screen.dart';
@@ -36,7 +37,7 @@ class WelcomeScreen extends StatelessWidget {
 
                   // BAŞLIK
                   const Text(
-                    'VAMPİR KÖYLÜ',
+                    ' MODERATE IT! ',
                     style: TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
@@ -139,6 +140,58 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // GİZLİLİK POLİTİKASI & KULLANIM KOŞULLARI
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    children: [
+                      const Text(
+                        'Uygulamayı kullanarak ',
+                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          final uri = Uri.parse('https://an07k.github.io/moderateit-privacy/');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: const Text(
+                          'Gizlilik Politikası',
+                          style: TextStyle(
+                            color: Color(0xFFDC143C),
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                      const Text(
+                        ' ve ',
+                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                      GestureDetector(
+                        onTap: () async {
+                          final uri = Uri.parse('https://an07k.github.io/moderateit-privacy/terms');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: const Text(
+                          'Kullanım Koşulları',
+                          style: TextStyle(
+                            color: Color(0xFFDC143C),
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                      const Text(
+                        '\'nı kabul etmiş sayılırsınız.',
+                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ],
               ),
