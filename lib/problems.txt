@@ -1,0 +1,3 @@
+Dedektif rolündeyken birinin rolünü öğrenince ekrana gelmiyor. Aslında öğrenmiyorsun sadece terminalde yazıyor.
+Dedektifin sadece 1 kere rol öğrenme özelliğiini kullanma hakkı olmalı yoksa çok adaletsiz olur.
+İstatistikler ekranı çalışmıyor

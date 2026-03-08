@@ -7,7 +7,7 @@ class RoleDistribution {
   static final List<String> eccentricRoles = [
     'asik',        // Âşık
     'deli',        // Deli
-    'dedektif',    // Detektif
+    'dedektif',    // Dedektif
     'misafir',     // Misafir
     'polis',       // Polis
     'takipci',     // Takipçi

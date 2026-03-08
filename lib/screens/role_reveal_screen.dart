@@ -39,7 +39,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
     'doktor': 'DOKTOR',
     'asik': 'ÂŞIK',
     'deli': 'DELİ',
-    'dedektif': 'DETEKTİF',
+    'dedektif': 'DEDEKTİF',
     'misafir': 'MİSAFİR',
     'polis': 'POLİS',
     'takipci': 'TAKİPÇİ',
