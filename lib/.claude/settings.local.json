@@ -9,7 +9,9 @@
       "Bash(flutter analyze --no-fatal-infos)",
       "Bash(flutter analyze:*)",
       "Bash(grep:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(xargs wc:*)",
+      "Bash(keytool:*)"
     ]
   }
 }

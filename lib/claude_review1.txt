@@ -1,0 +1,135 @@
+ CRITICAL FOR PUBLISHING
+
+  1. App Signing (BLOCKING)
+    - Currently using debug keys      
+    - Need: Create release keystore,  
+  configure signing config
+    - Task: 1-2 hours
+  2. Application ID (BLOCKING)        
+    - com.example.vampir_koylu ←      
+  Example package name
+    - Need: Proper reverse domain     
+  (e.g., com.yourcompany.vampirkoylu) 
+    - Task: 15 mins to change
+  3. App Icons & Images
+    - No custom app icons found       
+    - Need: ic_launcher, notification 
+  icons for all densities
+    - Task: 2-4 hours (design/create) 
+  4. Privacy Policy & Terms
+    - Not mentioned in app
+    - Google Play requires link in app
+   settings
+    - Task: 2-3 hours
+  5. Firebase Security Rules ⚠️       
+    - Currently ALL open (allow read, 
+  write: if true)
+    - This is a security risk for     
+  production
+    - Need: Proper authentication     
+  checks
+    - Task: 2-3 hours
+  6. Firebase Setup
+    - Need Google Play Services JSON  
+  properly configured
+    - Need Firebase project linked to 
+  Google Play Console
+    - Task: 1 hour
+
+  ⚠️ MEDIUM PRIORITY
+
+  Item: Localization (i18n)
+  Status: Partial (Turkish hardcoded) 
+  Effort: 4-6h
+  ────────────────────────────────────
+  ─
+  Item: Play Store Listing (title,    
+    desc, screenshots)
+  Status: Not done
+  Effort: 2-3h
+  ────────────────────────────────────
+  ─
+  Item: App Permissions (needs review)
+  Status: Not documented
+  Effort: 1h
+  ────────────────────────────────────
+  ─
+  Item: Proguard/Obfuscation Rules    
+  Status: Not configured
+  Effort: 1-2h
+  ────────────────────────────────────
+  ─
+  Item: Performance Optimization      
+  Status: Minor improvements
+  Effort: 2-3h
+  ────────────────────────────────────
+  ─
+  Item: Crash Reporting (Firebase     
+    Crashlytics)
+  Status: Not integrated
+  Effort: 2-3h
+  ────────────────────────────────────
+  ─
+  Item: Analytics
+  Status: Not integrated
+  Effort: 2h
+
+  📋 NICE-TO-HAVE
+
+  - Dark/Light theme toggle
+  - Sound effects & music
+  - In-app purchases
+  (cosmetics/premium features)        
+  - Cloud save backup
+  - Offline support
+  - Push notifications for game       
+  invites
+
+  ---
+  🎯 Recommended Publishing Timeline  
+
+  Phase 1 (This week): Critical Fixes 
+  1. Change app ID to proper package  
+  name
+  2. Create release signing key       
+  3. Setup Firebase rules properly    
+  4. Add privacy policy to settings   
+
+  Phase 2 (Next week): App Content    
+  1. Create app icons (all densities) 
+  2. Write privacy policy & terms     
+  3. Prepare store listing text/images
+  4. Test on real devices (Android    
+  8.0+)
+
+  Phase 3 (Week 3): Final Polish      
+  1. Integrate Firebase Crashlytics   
+  2. Optimize performance
+  3. Final QA testing
+  4. Submit to Google Play Console    
+
+  ---
+  ⚠️ Top 3 Risks for Publishing       
+
+  #: 1
+  Risk: Weak Firestore rules expose   
+    user data
+  Impact: Security breach, app        
+    rejection
+  Fix Time: 2-3h
+  ────────────────────────────────────
+  ─
+  #: 2
+  Risk: No app signing configured     
+  Impact: Can't publish at all        
+  Fix Time: 1-2h
+  ────────────────────────────────────
+  ─
+  #: 3
+  Risk: Missing privacy policy        
+  Impact: App rejection, user
+    complaints
+  Fix Time: 2-3h
+
+  Estimate to publishable state: 15-25
+   hours of focused work

@@ -22,6 +22,22 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        create("release") {
+            val releaseKeystore = System.getenv("VAMPIR_KEYSTORE_PATH") ?: file("release.jks")
+            val keystorePassword = System.getenv("VAMPIR_KEYSTORE_PASSWORD") ?: "VampirKoylu2024!"
+            val keyPassword = System.getenv("VAMPIR_KEY_PASSWORD") ?: "VampirKoylu2024!"
+            val keyAlias = System.getenv("VAMPIR_KEY_ALIAS") ?: "vampir_koylu"
+
+            if (releaseKeystore.exists()) {
+                storeFile = releaseKeystore
+                storePassword = keystorePassword
+                keyAlias = keyAlias
+                keyPassword = keyPassword
+            }
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.vampir_koylu"
@@ -35,9 +51,9 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
