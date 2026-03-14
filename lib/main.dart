@@ -12,9 +12,20 @@ import 'services/user_data_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('Firebase Error: $e', style: const TextStyle(color: Colors.red)),
+        ),
+      ),
+    ));
+    return;
+  }
   runApp(const VampirKoyluApp());
 }
 
