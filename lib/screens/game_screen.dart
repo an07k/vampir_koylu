@@ -9,6 +9,7 @@ import '../services/day_resolution_service.dart';
 import 'widgets/role_info_dialog.dart';
 import 'widgets/game_time_display.dart';
 import 'widgets/dead_chat_sheet.dart';
+import 'widgets/vampire_coord_sheet.dart';
 import 'game_end_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -592,7 +593,15 @@ class _GameScreenState extends State<GameScreen> {
     List<String> deadPlayers,
     Color roleColor, {
     Map<String, dynamic> Function(String targetId)? extraUpdates,
+    Map<String, dynamic> vampireVotes = const {},
   }) {
+    // Koordinasyon oylarına göre sırala (en çok oy alan en üste)
+    final sortedTargets = [...availableTargets]..sort((a, b) {
+        final aVotes = vampireVotes.values.where((v) => v == a).length;
+        final bVotes = vampireVotes.values.where((v) => v == b).length;
+        return bVotes.compareTo(aVotes);
+      });
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF2A2A2A),
@@ -623,9 +632,9 @@ class _GameScreenState extends State<GameScreen> {
             const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
-                itemCount: availableTargets.length,
+                itemCount: sortedTargets.length,
                 itemBuilder: (context, index) {
-                  final targetId = availableTargets[index];
+                  final targetId = sortedTargets[index];
                   final targetData = players[targetId];
 
                   return Container(
@@ -666,14 +675,37 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                           ),
                           const SizedBox(width: 15),
-                          Text(
-                            targetData['username'],
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          Expanded(
+                            child: Text(
+                              targetData['username'],
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
+                          Builder(builder: (ctx) {
+                            final voteCount = vampireVotes.values
+                                .where((v) => v == targetId)
+                                .length;
+                            if (voteCount == 0) return const SizedBox.shrink();
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade900.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '🧛 $voteCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ),
@@ -697,8 +729,10 @@ class _GameScreenState extends State<GameScreen> {
     Map<String, dynamic> players,
     Color roleColor,
     Map<String, dynamic> dayVotes,
-    bool votingStarted,
-  ) {
+    bool votingStarted, {
+    Map<String, dynamic> vampireVotes = const {},
+    List<String> tiedIds = const [],
+  }) {
     if (_userId == null) {
       return const SizedBox.shrink();
     }
@@ -873,6 +907,7 @@ class _GameScreenState extends State<GameScreen> {
                     : myRole == 'dedektif'
                         ? (targetId) => {'players.$_userId.dedektifUsed': true}
                         : null,
+                vampireVotes: myRole == 'vampir' ? vampireVotes : const {},
               );
             },
             style: ElevatedButton.styleFrom(
@@ -967,7 +1002,7 @@ class _GameScreenState extends State<GameScreen> {
         height: 60,
         child: ElevatedButton(
           onPressed: () {
-            _showDayVoteDialog(players, deadPlayers);
+            _showDayVoteDialog(players, deadPlayers, tiedIds: tiedIds);
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.orange,
@@ -991,11 +1026,17 @@ class _GameScreenState extends State<GameScreen> {
   // GÜNDÜZ OYLAMA DİYALOGU
   void _showDayVoteDialog(
     Map<String, dynamic> players,
-    List<String> deadPlayers,
-  ) {
+    List<String> deadPlayers, {
+    List<String> tiedIds = const [],
+  }) {
     final alivePlayers = players.keys
         .where((id) => !deadPlayers.contains(id) && id != _userId)
-        .toList();
+        .toList()
+      ..sort((a, b) {
+        final aIsTied = tiedIds.contains(a) ? 0 : 1;
+        final bIsTied = tiedIds.contains(b) ? 0 : 1;
+        return aIsTied.compareTo(bIsTied);
+      });
 
     if (alivePlayers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1176,6 +1217,11 @@ class _GameScreenState extends State<GameScreen> {
           final votingStarted = roomData['votingStarted'] ?? false;
           final lastEliminated = roomData['lastEliminated'] as Map<String, dynamic>?;
           final nightResults = roomData['nightResults'] as Map<String, dynamic>?;
+          final vampireVotes = Map<String, dynamic>.from(roomData['vampireVotes'] ?? {});
+          final lastTieData = roomData['lastTie'] as Map<String, dynamic>?;
+          final tiedIds = lastTieData != null && (roomData['votingStarted'] ?? false)
+              ? List<String>.from(lastTieData['tiedPlayerIds'] ?? [])
+              : <String>[];
 
           // Gece sonucu popup'ı - yeni bir gece çözümü varsa göster
           if (nightResults != null) {
@@ -1256,13 +1302,18 @@ class _GameScreenState extends State<GameScreen> {
           }
 
           // Bot oylaması - oylama başladığında host otomatik bot oylarını gönderir
+          if (!votingStarted) {
+            _hasAutoVotedBots = false;
+          }
+          // Berabere durumu: dayVotes sıfırlandı ama votingStarted hâlâ true → tekrar oy ver
+          if (votingStarted && dayVotes.isEmpty && _hasAutoVotedBots) {
+            _hasAutoVotedBots = false;
+          }
           if (currentPhase == 'day' && votingStarted && hostId == _userId && !_hasAutoVotedBots) {
             _hasAutoVotedBots = true;
             Future.delayed(const Duration(milliseconds: 300), () async {
               await _submitBotVotes(players, deadPlayers);
             });
-          } else if (!votingStarted) {
-            _hasAutoVotedBots = false;
           }
 
           // Rol bilgileri
@@ -1757,7 +1808,51 @@ class _GameScreenState extends State<GameScreen> {
                     myRoleColor,
                     dayVotes,
                     votingStarted,
+                    vampireVotes: vampireVotes,
+                    tiedIds: tiedIds,
                   ),
+
+                  // VAMPİR KOORDİNASYON BUTONU (sadece vampirler, her zaman)
+                  if (myRole == 'vampir' && !deadPlayers.contains(_userId))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: const Color(0xFF1A0000),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            ),
+                            builder: (context) => VampireCoordSheet(
+                              roomCode: widget.roomCode,
+                              userId: _userId!,
+                              players: players,
+                              deadPlayers: deadPlayers,
+                              vampireVotes: vampireVotes,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3A0000),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Color(0xFFDC143C)),
+                            ),
+                          ),
+                          icon: const Text('🧛', style: TextStyle(fontSize: 16)),
+                          label: const Text(
+                            'KOORDİNASYON',
+                            style: TextStyle(
+                              color: Color(0xFFDC143C),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

@@ -1,129 +1,66 @@
 ═══════════════════════════════════════
-🚨 ! CRITICAL FOR PUBLISHING — MODERATE IT!
+🚨 CRITICAL FOR PUBLISHING — MODERATE IT!
 ═══════════════════════════════════════
 
-1. App Signing (BLOCKING) ⏳
-   - Keystore created (moderateit.jks)
-   - build.gradle signing config updated
-   - Needs: flutter build apk --release test once Android Studio is installed
-   - Status: 80% complete
+1. App Signing ✅
+2. Application ID ✅ — com.anilstudio.moderateit
+3. App Icons ⏳ — partner designing
+4. Privacy Policy & Terms ✅
+5. Firebase Security Rules ✅
+6. Firebase → Play Console link ⏳ — after Play Store account
 
-2. Application ID ✅ DONE
-   - Updated to com.anilstudio.moderateit
-   - Namespace also updated
+═══════════════════════════════════════
+✅ BUGS FIXED
+═══════════════════════════════════════
 
-3. App Icons & Images ⏳
-   - Design in progress (partner designing)
-   - Concept: hammer/moderator icon
-   - Status: Waiting
-
-4. Privacy Policy & Terms ✅ DONE
-   - Privacy Policy: https://an07k.github.io/moderateit-privacy/
-   - Terms of Service: https://an07k.github.io/moderateit-privacy/terms
-   - Added to Welcome screen
-   - Added to Create Account screen
-
-5. Firebase Security Rules ✅ DONE
-   - Secure rules written and published for all collections
-   - users: only specific fields can be updated
-   - rooms: delete blocked, update restricted to game fields
-   - guests: update blocked
-   - game_history: update and delete blocked
-
-6. Firebase Setup ⏳
-   - Google Play Services JSON configuration needed
-   - Firebase → Play Console link needed
-   - Status: Will be done once Play Store account is created
+- Release APK crash (MainActivity ClassNotFoundException)
+- Firebase appId, ADB conflict, FirebaseInitProvider crash
+- Bot add button invisible in release mode
+- Join/start room permission-denied
+- Detective result in morning popup, limited to 1 use
+- Vampires see each other in player list
+- Tie vote repeats instead of ending round
+- Bots re-vote on tie repeat
+- Statistics screen (totalGames, wins, winrate)
+- Vampire coordination panel (replaces chat)
+- Doctor always 1
+- Vote button white color bug
+- Night target list sorted by coordination votes
+- Day re-vote list shows tied players at top
 
 ═══════════════════════════════════════
 ⚠️ MEDIUM PRIORITY
 ═══════════════════════════════════════
 
-Item: App name update
-Status: ✅ DONE — changed to "Moderate It!"
-
-Item: Localization (i18n)
-Status: Partial (Turkish hardcoded)
-Effort: 4-6h
-
-Item: Play Store Listing (title, desc, screenshots)
-Status: Not done
-Effort: 2-3h
-
-Item: App Permissions (needs review)
-Status: Not documented
-Effort: 1h
-
-Item: Proguard/Obfuscation Rules
-Status: isMinifyEnabled = true already active in build.gradle
-Effort: Remaining: proguard-rules.pro fine-tuning ~1h
-
-Item: Performance Optimization
-Status: Minor improvements done
-Effort: 2-3h
-
-Item: Crash Reporting (Firebase Crashlytics)
-Status: Not integrated
-Effort: 2-3h
-
-Item: Analytics
-Status: Not integrated
-Effort: 2h
+- Localization ⏳ Turkish hardcoded — 4-6h
+- Play Store listing (title, desc, screenshots) ⏳ — 2-3h
+- ProGuard ⏳ disabled (isMinifyEnabled=false), re-enable before submit — 1h
+- Firebase Crashlytics ⏳ — 2-3h
+- Analytics ⏳ — 2h
+- Minimum version check ⏳ — 1h
 
 ═══════════════════════════════════════
 📋 NICE-TO-HAVE
 ═══════════════════════════════════════
 
-- Dark/Light theme toggle
 - Sound effects & music
-- In-app purchases (cosmetics/premium features)
-- Cloud save backup
-- Offline support
-- Push notifications for game invites
+- In-app purchases
+- Push notifications
+- Manipulator role (coded, not active)
+- Per-role statistics
 
 ═══════════════════════════════════════
-🎯 Updated Publishing Timeline
+🎯 PUBLISHING PHASES
 ═══════════════════════════════════════
 
-Phase 1 ✅ COMPLETE
-  ✅ Application ID updated
-  ✅ Firebase security rules fixed
-  ✅ Privacy Policy & Terms added
-  ✅ App name updated to Moderate It!
-  ⏳ Release signing — to be completed once Android Studio is installed
+Phase 1 ✅ — signing, app ID, rules, privacy, app name
+Phase 2 (Current) — icons, Play Store listing, Firebase→Play Console, ProGuard, Crashlytics
+Phase 3 — performance, min version check, QA, submit
 
-Phase 2 (This week): App Content
-  1. App icons (partner designing)
-  2. Play Store listing text & screenshots
-  3. Real device testing (Android 8.0+)
-  4. Firebase → Play Console connection
-
-Phase 3 (Next week): Final Polish
-  1. Firebase Crashlytics integration
-  2. Performance optimization
-  3. Final QA testing
-  4. Submit to Google Play Console
-
-═══════════════════════════════════════
 ⚠️ Remaining Risks
-═══════════════════════════════════════
+- Firebase → Play Console not linked
+- No app icons (Play Store rejection risk)
+- ProGuard disabled (larger APK)
 
-#1
-Risk: App signing not yet tested
-Impact: Cannot publish
-Fix: Run flutter build apk --release once Android Studio is installed
-
-#2
-Risk: Firebase → Play Console not linked
-Impact: Potential Google services issues
-Fix: ~1h once Play Store developer account is created
-
-#3
-Risk: No app icons
-Impact: Play Store rejection
-Fix: Waiting on partner's design
-
-═══════════════════════════════════════
-Estimated time to publish: 5-10 hours remaining
-(Major blockers cleared!)
+Estimated time to publish: 4-6h remaining
 ═══════════════════════════════════════

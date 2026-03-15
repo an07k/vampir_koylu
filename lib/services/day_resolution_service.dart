@@ -48,11 +48,13 @@ class DayResolutionService {
             .map((e) => players[e.key]?['username'] ?? '?')
             .toList();
         debugPrint('⚠️ Berabere! Oylama tekrar başlıyor: ${victims.map((e) => e.key).join(', ')}');
+        final tiedPlayerIds = victims.map((e) => e.key).toList();
         await roomRef.update({
           'dayVotes': {},
           'votingStarted': true,
           'lastTie': {
             'tiedPlayers': tiedPlayerNames,
+            'tiedPlayerIds': tiedPlayerIds,
             'timestamp': FieldValue.serverTimestamp(),
           },
         });

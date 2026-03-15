@@ -7,6 +7,8 @@ import 'themes/app_theme.dart';
 import 'package:vampir_koylu/screens/welcome_screen.dart';
 import 'screens/create_room_screen.dart';
 import 'screens/join_room_screen.dart';
+import 'screens/statistics_screen.dart';
+import 'screens/settings_screen.dart';
 import 'services/auth_service.dart';
 import 'services/user_data_service.dart';
 
@@ -260,7 +262,21 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             text: AppStrings.statistics,
             icon: Icons.bar_chart,
             onPressed: () {
-              debugPrint('Statistics button pressed - not yet implemented');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const StatisticsScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 15),
+          MenuButton(
+            text: 'Ayarlar',
+            icon: Icons.settings,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
             },
           ),
         ],

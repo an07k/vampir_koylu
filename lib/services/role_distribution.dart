@@ -22,7 +22,7 @@ class RoleDistribution {
     roles['vampir'] = (playerCount / 3).toInt();
 
     // Doktor sayısı
-    roles['doktor'] = playerCount >= 12 ? 2 : 1;
+    roles['doktor'] = 1;
 
     // Egzantrik rol sayısı
     int eccentricCount = 0;
