@@ -14,30 +14,41 @@ class RoleDistribution {
     'manipulator', // Manipülatör
   ];
 
+  // Normal mod vampir tablosu
+  static const _normalVampirs = {
+    4: 1, 5: 1, 6: 2, 7: 2, 8: 2, 9: 2,
+    10: 3, 11: 3, 12: 3, 13: 3, 14: 4, 15: 4,
+  };
+
+  // Egzantrik mod vampir + egzantrik tablosu
+  static const _eccentricTable = {
+    7:  (v: 2, e: 1),
+    8:  (v: 2, e: 2),
+    9:  (v: 2, e: 2),
+    10: (v: 2, e: 2),
+    11: (v: 3, e: 2),
+    12: (v: 3, e: 3),
+    13: (v: 3, e: 3),
+    14: (v: 3, e: 3),
+    15: (v: 3, e: 4),
+  };
+
   // ROL DAĞILIMI HESAPLA
   static Map<String, int> calculateRoles(int playerCount, String gameMode) {
     final roles = <String, int>{};
 
-    // Vampir sayısı = oyuncu / 3 (aşağı yuvarla)
-    roles['vampir'] = (playerCount / 3).toInt();
-
-    // Doktor sayısı
     roles['doktor'] = 1;
 
-    // Egzantrik rol sayısı
-    int eccentricCount = 0;
-    if (gameMode == 'eccentric') {
-      if (playerCount >= 10) {
-        eccentricCount = 2;
-      } else if (playerCount >= 7) {
-        eccentricCount = 1;
-      }
+    if (gameMode == 'eccentric' && _eccentricTable.containsKey(playerCount)) {
+      final entry = _eccentricTable[playerCount]!;
+      roles['vampir'] = entry.v;
+      roles['egzantrik'] = entry.e;
+    } else {
+      roles['vampir'] = _normalVampirs[playerCount] ?? (playerCount / 3).toInt();
+      roles['egzantrik'] = 0;
     }
-    roles['egzantrik'] = eccentricCount;
 
-    // Köylü = kalan
-    roles['koylu'] =
-        playerCount - roles['vampir']! - roles['doktor']! - eccentricCount;
+    roles['koylu'] = playerCount - roles['vampir']! - roles['doktor']! - roles['egzantrik']!;
 
     return roles;
   }

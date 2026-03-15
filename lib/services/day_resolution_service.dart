@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'gold_service.dart';
+import 'statistics_service.dart';
 
 class DayResolutionService {
   // GÜNDÜZ OYLAMASI SONUÇLANDIR
@@ -214,6 +215,12 @@ class DayResolutionService {
 
     // GOLD ÖDÜLÜ VER
     await GoldService.awardWinGold(winnerIds);
+
+    // İSTATİSTİK GÜNCELLE
+    await StatisticsService.recordGameResult(
+      winnerIds: winnerIds,
+      allPlayerIds: players.keys.toList(),
+    );
 
     // OYUN DURUMUNU GÜNCELLE
     await roomRef.update({
