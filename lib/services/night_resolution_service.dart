@@ -370,6 +370,10 @@ class NightResolutionService {
           final isKinlendi = players[id]?['asikKinlendi'] == true;
           return !(hasTarget && !isKinlendi);
         }
+        if (role == 'dedektif') {
+          // Dedektif hakkını kullandıysa aksiyon gerekmez
+          return players[id]?['dedektifUsed'] != true;
+        }
         return nightRoles.contains(role);
       }).toList();
 

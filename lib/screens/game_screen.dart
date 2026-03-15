@@ -105,7 +105,7 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  void _showNightResultPopup(String? killedName, {Map<String, dynamic>? nightResults}) {
+  void _showNightResultPopup(String? killedName, {Map<String, dynamic>? nightResults, String? dedektifTargetName, String? dedektifResult}) {
     final String emoji;
     final String title;
     final List<String> messages = [];
@@ -153,6 +153,12 @@ class _GameScreenState extends State<GameScreen> {
         final kinlendiName = (nightResults['kinlendi_name'] as String?) ?? 'bilinmeyen';
         messages.add(AppStrings.asikVengeance.replaceAll('{name}', kinlendiName));
       }
+    }
+
+    // DEDEKTİF SONUCU (sadece dedektif oyuncuya göster)
+    if (dedektifTargetName != null && dedektifResult != null) {
+      final roleName = _getRoleDisplayName(dedektifResult);
+      messages.add('🔍 $dedektifTargetName\'ın rolü: $roleName');
     }
 
     final message = messages.join('\n');
@@ -393,6 +399,22 @@ class _GameScreenState extends State<GameScreen> {
     return elapsedGameMinutes >= 780;
   }
 
+  String _getRoleDisplayName(String role) {
+    const names = {
+      'vampir': '🧛 Vampir',
+      'koylu': '🧑‍🌾 Köylü',
+      'doktor': '⚕️ Doktor',
+      'dedektif': '🔍 Dedektif',
+      'misafir': '🏠 Misafir',
+      'polis': '👮 Polis',
+      'takipci': '👣 Takipçi',
+      'manipulator': '🎭 Manipülatör',
+      'asik': '💕 Âşık',
+      'deli': '🃏 Deli',
+    };
+    return names[role] ?? role;
+  }
+
   void _showRoleInfo(String role) {
     showModalBottomSheet(
       context: context,
@@ -614,7 +636,7 @@ class _GameScreenState extends State<GameScreen> {
                         _submitNightAction(targetId, extraUpdates: extraUpdates?.call(targetId));
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha:0.1),
+                        backgroundColor: const Color(0xFF2A2A2A),
                         padding: const EdgeInsets.all(15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
@@ -809,6 +831,11 @@ class _GameScreenState extends State<GameScreen> {
         );
       }
 
+      // Dedektif hakkını kullandıysa aksiyon yok
+      if (myRole == 'dedektif' && players[_userId]?['dedektifUsed'] == true) {
+        return _buildInfoBox('🔍 Dedektif hakkını kullandın. Sabahı bekle...', Colors.purple);
+      }
+
       // Aksiyon gönderilmemiş - hedef seçim butonu
       return Padding(
         padding: const EdgeInsets.all(20),
@@ -843,7 +870,9 @@ class _GameScreenState extends State<GameScreen> {
                     ? (targetId) => targetId == _userId
                         ? {'players.$_userId.selfProtectUsed': true}
                         : {}
-                    : null,
+                    : myRole == 'dedektif'
+                        ? (targetId) => {'players.$_userId.dedektifUsed': true}
+                        : null,
               );
             },
             style: ElevatedButton.styleFrom(
@@ -1028,7 +1057,7 @@ class _GameScreenState extends State<GameScreen> {
                         _submitDayVote(targetId);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha:0.1),
+                        backgroundColor: const Color(0xFF2A2A2A),
                         padding: const EdgeInsets.all(15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
@@ -1163,8 +1192,18 @@ class _GameScreenState extends State<GameScreen> {
               if (kinlendiKill != null && nightResults['kinlendi_name'] == null) {
                 nightResults['kinlendi_name'] = players[kinlendiKill]?['username'] as String?;
               }
+              String? dedektifTargetName;
+              String? dedektifResultForMe;
+              if (myRole == 'dedektif') {
+                final dedektifTarget = nightResults['dedektif_target'] as String?;
+                final dedektifRes = nightResults['dedektif_result'] as String?;
+                if (dedektifTarget != null && dedektifRes != null) {
+                  dedektifTargetName = players[dedektifTarget]?['username'] as String?;
+                  dedektifResultForMe = dedektifRes;
+                }
+              }
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) _showNightResultPopup(killedName, nightResults: nightResults);
+                if (mounted) _showNightResultPopup(killedName, nightResults: nightResults, dedektifTargetName: dedektifTargetName, dedektifResult: dedektifResultForMe);
               });
             }
           }
@@ -1656,6 +1695,18 @@ class _GameScreenState extends State<GameScreen> {
                                           ),
                                         ),
                                       ),
+                                      // Vampir rozeti (sadece vampirlere göster)
+                                      if (myRole == 'vampir' && playerData['role'] == 'vampir' && playerId != _userId)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.shade900.withValues(alpha:0.4),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.red.shade700, width: 1),
+                                          ),
+                                          child: const Text('🧛', style: TextStyle(fontSize: 14)),
+                                        ),
                                       // Alive/Dead indicator
                                       Container(
                                         padding: const EdgeInsets.symmetric(

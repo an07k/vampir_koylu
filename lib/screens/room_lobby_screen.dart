@@ -325,6 +325,24 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                   );
                 }
               });
+            } else {
+              // Rol henüz gelmedi, yükleniyor göster
+              return const Scaffold(
+                backgroundColor: Color(0xFF1A1A1A),
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: Color(0xFFDC143C)),
+                      SizedBox(height: 20),
+                      Text(
+                        'Oyun başlıyor...',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
           }
 
@@ -548,7 +566,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                       if (isHost) const SizedBox(height: 10),
 
                       // Bot Ekle (sadece host, sadece debug modda)
-                      if (isHost && kDebugMode)
+                      if (isHost)
                         SizedBox(
                           width: double.infinity,
                           height: 60,

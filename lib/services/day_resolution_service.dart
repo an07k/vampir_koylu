@@ -47,11 +47,10 @@ class DayResolutionService {
         final tiedPlayerNames = victims
             .map((e) => players[e.key]?['username'] ?? '?')
             .toList();
-        debugPrint('⚠️ Berabere! Kimse öldürülmedi: ${victims.map((e) => e.key).join(', ')}');
+        debugPrint('⚠️ Berabere! Oylama tekrar başlıyor: ${victims.map((e) => e.key).join(', ')}');
         await roomRef.update({
           'dayVotes': {},
-          'votingStarted': false,
-          'phaseStartTimestamp': FieldValue.serverTimestamp(),
+          'votingStarted': true,
           'lastTie': {
             'tiedPlayers': tiedPlayerNames,
             'timestamp': FieldValue.serverTimestamp(),
