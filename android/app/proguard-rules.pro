@@ -10,8 +10,10 @@
 -keep class com.google.android.play.core.** { *; }
 -dontwarn com.google.android.play.core.**
 
-# Game code - keep all application classes
--keep class com.example.vampir_koylu.** { *; }
+# App classes
+-keep class com.anilstudio.moderateit.** { *; }
+-keep class io.flutter.embedding.android.FlutterActivity { *; }
+-keep class io.flutter.embedding.android.FlutterFragmentActivity { *; }
 
 # Generic rules
 -keepattributes *Annotation*

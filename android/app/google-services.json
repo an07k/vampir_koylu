@@ -29,49 +29,6 @@
             {
               "client_id": "987230211223-b3sqq2mvdbc5hhlage9lom01d3uv3h61.apps.googleusercontent.com",
               "client_type": 3
-            },
-            {
-              "client_id": "987230211223-0ie7m4ful7flddcimkkkkor10tp01c89.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.vampirKoylu"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:987230211223:android:522c360d81f5c9b0c7add2",
-        "android_client_info": {
-          "package_name": "com.example.vampir_koylu"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "987230211223-b3sqq2mvdbc5hhlage9lom01d3uv3h61.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDEX1WsdSIIQ5MAOyfKLSp-JrCwuQRyb2o"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "987230211223-b3sqq2mvdbc5hhlage9lom01d3uv3h61.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "987230211223-0ie7m4ful7flddcimkkkkor10tp01c89.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.vampirKoylu"
-              }
             }
           ]
         }

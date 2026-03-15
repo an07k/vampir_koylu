@@ -19,8 +19,16 @@ void main() async {
   } catch (e) {
     runApp(MaterialApp(
       home: Scaffold(
+        backgroundColor: Colors.black,
         body: Center(
-          child: Text('Firebase Error: $e', style: const TextStyle(color: Colors.red)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              'Baglanti hatasi: $e',
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
       ),
     ));

@@ -1,5 +1,5 @@
 ═══════════════════════════════════════
-🚨 CRITICAL FOR PUBLISHING — MODERATE IT!
+🚨 ! CRITICAL FOR PUBLISHING — MODERATE IT!
 ═══════════════════════════════════════
 
 1. App Signing (BLOCKING) ⏳
