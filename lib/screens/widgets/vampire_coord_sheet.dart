@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../constants/app_l10n.dart';
 
 class VampireCoordSheet extends StatelessWidget {
   final String roomCode;
@@ -70,14 +71,14 @@ class VampireCoordSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('🧛', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
+                    const Text('🧛', style: TextStyle(fontSize: 20)),
+                    const SizedBox(width: 8),
                     Text(
-                      'VAMPİR KOORDİNASYONU',
-                      style: TextStyle(
+                      AppL10n.vampireCoordTitle,
+                      style: const TextStyle(
                         color: Color(0xFFDC143C),
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -87,9 +88,9 @@ class VampireCoordSheet extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Kimi yemek istediğini işaretle',
-                  style: TextStyle(color: Colors.red, fontSize: 11),
+                Text(
+                  AppL10n.vampireCoordSub,
+                  style: const TextStyle(color: Colors.red, fontSize: 11),
                 ),
               ],
             ),

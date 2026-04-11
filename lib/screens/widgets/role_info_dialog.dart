@@ -1,36 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../constants/app_l10n.dart';
 
 class RoleInfoDialog extends StatelessWidget {
   final String role;
 
-  const RoleInfoDialog({
-    super.key,
-    required this.role,
-  });
-
-  // ROL AÇIKLAMALARI
-  static const Map<String, String> roleDescriptions = {
-    'vampir':
-        'Gece diğer vampirlerle birlikte bir köylüyü öldürüyorsun. Gündüz oymada köylülere karış ve tespite çakılma!',
-    'koylu':
-        'Gündüz oylama ile vampirleri bul ve öldür. Sana özel bir yetki yok ama gözlemle her şeyi çözebilirsin!',
-    'doktor':
-        'Gece bir kişiyi koruyabilirsin. Eğer vampirler o kişiyi seçerse ölmez! Ama aynı kişiyi iki gece üst üste koruyamazsın.',
-    'asik':
-        'Oyun başında bir kişi seç, o senin aşkın. Eğer aşkın masum öldürülürse ertesi gün 1 kişi öldürme hakkın olur. Ama aşkın vampireyse öldürüldüğünde kendin ölürsün!',
-    'deli':
-        'Eğer kendini oylama ile astırırsan kazanırsın! Aksi takdirde her zaman kaybedersin. Herkes seni şüphelendirmeye çalış!',
-    'dedektif':
-        'Bir gece seçtiğin kişinin rolünü tam olarak öğrenebilirsin. Bu bilgiyi iyi kullan!',
-    'misafir':
-        'Gece gittiğin kişiyi işinden alıkoyarsın. Doktorsa koruma yapamaz, vampireyse öldürme yapamaz!',
-    'polis':
-        'Bir gece nöbet tutarsan, o eve kim geldiğini öğrenirsin. Kim vampir kim değil bulmana yardımcı olabilir!',
-    'takipci':
-        'Bir eve sızırsan, o kişi bir yere giderse nereye gittiğini öğrenirsin. Vampirlerin hareketlerini izle!',
-    'manipulator':
-        'Oyun boyunca bir kez, gündüz oylaması esnasında iki oyuncunun oylarını değiştirebilirsin. Herkes bunu görecek!',
-  };
+  const RoleInfoDialog({super.key, required this.role});
 
   static const Map<String, String> roleIcons = {
     'vampir': '🧛',
@@ -43,19 +17,6 @@ class RoleInfoDialog extends StatelessWidget {
     'polis': '👮',
     'takipci': '👣',
     'manipulator': '🎭',
-  };
-
-  static const Map<String, String> roleNames = {
-    'vampir': 'VAMPİR',
-    'koylu': 'KÖYLÜ',
-    'doktor': 'DOKTOR',
-    'asik': 'ÂŞIK',
-    'deli': 'DELİ',
-    'dedektif': 'DETEKTİF',
-    'misafir': 'MİSAFİR',
-    'polis': 'POLİS',
-    'takipci': 'TAKİPÇİ',
-    'manipulator': 'MANİPÜLATÖR',
   };
 
   static const Map<String, Color> roleColors = {
@@ -75,13 +36,14 @@ class RoleInfoDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = roleColors[role] ?? Colors.white;
     final icon = roleIcons[role] ?? '❓';
-    final name = roleNames[role] ?? 'BILINMIYOR';
-    final description = roleDescriptions[role] ?? 'Açıklama bulunamadı.';
+    final name = AppL10n.roleNames[role] ?? AppL10n.unknown;
+    final description =
+        AppL10n.roleDescriptions[role] ?? '';
 
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: const BorderRadius.only(
+      decoration: const BoxDecoration(
+        color: Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.only(
           topLeft: Radius.circular(25),
           topRight: Radius.circular(25),
         ),
@@ -90,7 +52,6 @@ class RoleInfoDialog extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Container(
             width: 40,
             height: 4,
@@ -100,15 +61,8 @@ class RoleInfoDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 25),
-
-          // Icon
-          Text(
-            icon,
-            style: const TextStyle(fontSize: 60),
-          ),
+          Text(icon, style: const TextStyle(fontSize: 60)),
           const SizedBox(height: 15),
-
-          // Rol Adı
           Text(
             name,
             style: TextStyle(
@@ -119,27 +73,15 @@ class RoleInfoDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Divider
-          Container(
-            height: 1,
-            color: color.withOpacity(0.3),
-          ),
+          Container(height: 1, color: color.withValues(alpha: 0.3)),
           const SizedBox(height: 20),
-
-          // Açıklama
           Text(
             description,
             style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-              height: 1.6,
-            ),
+                color: Colors.white70, fontSize: 16, height: 1.6),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),
-
-          // Kapatl Butonu
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -147,17 +89,15 @@ class RoleInfoDialog extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
+                    borderRadius: BorderRadius.circular(15)),
                 padding: const EdgeInsets.symmetric(vertical: 15),
               ),
-              child: const Text(
-                'KAPAT',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              child: Text(
+                AppL10n.close,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
               ),
             ),
           ),

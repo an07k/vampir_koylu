@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../constants/app_l10n.dart';
 import '../services/role_distribution.dart';
 import '../services/auth_service.dart';
 import 'role_reveal_screen.dart';
@@ -41,30 +42,30 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A2A2A),
-        title: const Text(
-          'Odayı Kapat',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          AppL10n.closeRoomTitle,
+          style: const TextStyle(color: Colors.white),
         ),
-        content: const Text(
-          'Odayı kapatmak istediğinize emin misiniz? Tüm oyuncular odadan atılacak ve oda silinecek.',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          AppL10n.closeRoomConfirmLobby,
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'İPTAL',
-              style: TextStyle(color: Colors.white70),
+            child: Text(
+              AppL10n.cancel,
+              style: const TextStyle(color: Colors.white70),
             ),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Dialog'u kapat
+              Navigator.pop(context);
               await _closeRoom();
             },
-            child: const Text(
-              'KAPAT',
-              style: TextStyle(color: Colors.red),
+            child: Text(
+              AppL10n.close,
+              style: const TextStyle(color: Colors.red),
             ),
           ),
         ],
@@ -85,8 +86,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
       if (mounted) {
         Navigator.pop(context); // Ana menüye dön
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Oda kapatıldı'),
+          SnackBar(
+            content: Text(AppL10n.roomClosed),
             backgroundColor: Colors.orange,
           ),
         );
@@ -127,20 +128,20 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A2A2A),
-        title: const Text(
-          'Oyuncuyu Çıkar',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          AppL10n.kickPlayerTitle,
+          style: const TextStyle(color: Colors.white),
         ),
         content: Text(
-          '$playerName adlı oyuncuyu odadan çıkarmak istediğinize emin misiniz?',
+          AppL10n.kickConfirm(playerName),
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'İPTAL',
-              style: TextStyle(color: Colors.white70),
+            child: Text(
+              AppL10n.cancel,
+              style: const TextStyle(color: Colors.white70),
             ),
           ),
           TextButton(
@@ -148,9 +149,9 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
               Navigator.pop(context);
               await _kickPlayer(playerId);
             },
-            child: const Text(
-              'ÇIKART',
-              style: TextStyle(color: Colors.red),
+            child: Text(
+              AppL10n.kick,
+              style: const TextStyle(color: Colors.red),
             ),
           ),
         ],
@@ -172,8 +173,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Oyuncu odadan çıkarıldı'),
+          SnackBar(
+            content: Text(AppL10n.playerKicked),
             backgroundColor: Colors.orange,
           ),
         );
@@ -189,8 +190,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
       if (currentPlayerCount >= maxPlayers) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Oda dolu!'),
+            SnackBar(
+              content: Text(AppL10n.roomFullLobby),
               backgroundColor: Colors.orange,
             ),
           );
@@ -243,8 +244,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Oyun başladı! Roller dağıtıldı.'),
+          SnackBar(
+            content: Text(AppL10n.gameStarted),
             backgroundColor: Colors.green,
           ),
         );
@@ -253,8 +254,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
       debugPrint('❌ Oyun başlatma hatası: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Oyun başlatılamadı. Tekrar deneyin.'),
+          SnackBar(
+            content: Text(AppL10n.gameStartFailed),
             backgroundColor: Colors.red,
           ),
         );
@@ -266,7 +267,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Oda: ${widget.roomCode}'),
+        title: Text(AppL10n.roomLabel(widget.roomCode)),
         backgroundColor: const Color(0xFF8B0000),
       ),
       body: StreamBuilder<DocumentSnapshot>(
@@ -284,10 +285,10 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(
+            return Center(
               child: Text(
-                'Oda bulunamadı',
-                style: TextStyle(color: Colors.white),
+                AppL10n.roomNotFoundMsg,
+                style: const TextStyle(color: Colors.white),
               ),
             );
           }
@@ -326,17 +327,17 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
               });
             } else {
               // Rol henüz gelmedi, yükleniyor göster
-              return const Scaffold(
-                backgroundColor: Color(0xFF1A1A1A),
+              return Scaffold(
+                backgroundColor: const Color(0xFF1A1A1A),
                 body: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(color: Color(0xFFDC143C)),
-                      SizedBox(height: 20),
+                      const CircularProgressIndicator(color: Color(0xFFDC143C)),
+                      const SizedBox(height: 20),
                       Text(
-                        'Oyun başlıyor...',
-                        style: TextStyle(color: Colors.white, fontSize: 18),
+                        AppL10n.gameStarting,
+                        style: const TextStyle(color: Colors.white, fontSize: 18),
                       ),
                     ],
                   ),
@@ -388,7 +389,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              gameMode == 'classic' ? 'Klasik' : 'Egzantrik',
+                              AppL10n.gameModeDisplay(gameMode),
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
@@ -406,7 +407,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              '$playerCount/$maxPlayers Oyuncu',
+                              AppL10n.playerCountDisplay(playerCount, maxPlayers),
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
@@ -519,7 +520,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                                   color: Colors.red,
                                   size: 24,
                                 ),
-                                tooltip: 'Oyuncuyu Çıkar',
+                                tooltip: AppL10n.kickTooltip,
                               ),
                           ],
                         ),
@@ -552,9 +553,9 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                                 borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                            child: const Text(
-                              'OYUNU BAŞLAT',
-                              style: TextStyle(
+                            child: Text(
+                              AppL10n.startGame,
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -580,14 +581,14 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                                 borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.smart_toy, color: Colors.white),
-                                SizedBox(width: 10),
+                                const Icon(Icons.smart_toy, color: Colors.white),
+                                const SizedBox(width: 10),
                                 Text(
-                                  'BOT EKLE',
-                                  style: TextStyle(
+                                  AppL10n.addBot,
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
@@ -618,7 +619,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                             ),
                           ),
                           child: Text(
-                            isHost ? 'ODAYI KAPAT' : 'ODADAN AYRIL',
+                            isHost ? AppL10n.closeRoomBtn : AppL10n.leaveRoom,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import '../constants/app_l10n.dart';
 import 'room_lobby_screen.dart';
 import '../services/auth_service.dart';
 
@@ -15,7 +16,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   final TextEditingController _passwordController = TextEditingController();
   String _roomCode = '';
   int _playerCount = 10;
-  String _gameMode = 'classic'; // 'classic' veya 'eccentric'
+  String _gameMode = 'classic';
   bool _isLoading = false;
 
   @override
@@ -24,35 +25,29 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     _generateRoomCode();
   }
 
-  // MİNİMUM OYUNCU SAYISI (MOD'A GÖRE)
   int get _minPlayerCount => _gameMode == 'eccentric' ? 7 : 4;
 
-  // 6 HANELİ RASTGELE KOD OLUŞTUR
   void _generateRoomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
-    _roomCode = List.generate(6, (index) => chars[random.nextInt(chars.length)]).join();
+    _roomCode =
+        List.generate(6, (index) => chars[random.nextInt(chars.length)]).join();
     setState(() {});
   }
 
-  // ODA OLUŞTURMA
   Future<void> _createRoom() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final user = await AuthService.getCurrentUser();
       if (user == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kullanıcı bilgisi bulunamadı.'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppL10n.userNotFound),
+            backgroundColor: Colors.red,
+          ));
         }
-        setState(() { _isLoading = false; });
+        setState(() => _isLoading = false);
         return;
       }
 
@@ -60,24 +55,24 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       final displayName = user['displayName'];
       final avatarColor = user['avatarColor'];
 
-      // Çakışmayı önlemek için transaction ile "create-only" semantiği
       bool created = false;
       String codeToUse = _roomCode;
 
       for (int attempt = 0; attempt < 5; attempt++) {
-        final roomRef = FirebaseFirestore.instance
-            .collection('rooms')
-            .doc(codeToUse);
+        final roomRef =
+            FirebaseFirestore.instance.collection('rooms').doc(codeToUse);
 
         created = await FirebaseFirestore.instance.runTransaction((tx) async {
           final snap = await tx.get(roomRef);
-          if (snap.exists) return false; // Kod çakışıyor, yeni kod dene
+          if (snap.exists) return false;
 
           tx.set(roomRef, {
             'roomCode': codeToUse,
             'hostId': userId,
             'hostUsername': displayName,
-            'password': _passwordController.text.isEmpty ? null : _passwordController.text,
+            'password': _passwordController.text.isEmpty
+                ? null
+                : _passwordController.text,
             'maxPlayers': _playerCount,
             'playerCount': 1,
             'gameMode': _gameMode,
@@ -97,51 +92,39 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
         if (created) break;
 
-        // Çakışma → yeni kod üret ve tekrar dene
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         final random = Random();
-        codeToUse = List.generate(6, (_) => chars[random.nextInt(chars.length)]).join();
+        codeToUse =
+            List.generate(6, (_) => chars[random.nextInt(chars.length)]).join();
         setState(() => _roomCode = codeToUse);
       }
 
-      if (!created) {
-        throw Exception('Oda kodu oluşturulamadı, lütfen tekrar deneyin.');
-      }
+      if (!created) throw Exception(AppL10n.roomCreateFailed);
 
-      debugPrint('✅ Oda oluşturuldu: $codeToUse');
-
-      // Oda bekleme alanına git
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => RoomLobbyScreen(roomCode: codeToUse),
-          ),
+              builder: (context) => RoomLobbyScreen(roomCode: codeToUse)),
         );
       }
-
     } catch (e) {
-      debugPrint('❌ Oda oluşturma hatası: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Oda oluşturulamadı. Tekrar deneyin.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppL10n.roomCreateFailed),
+          backgroundColor: Colors.red,
+        ));
       }
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Oda Oluştur'),
+        title: Text(AppL10n.createRoomTitle),
         backgroundColor: const Color(0xFF8B0000),
       ),
       body: Container(
@@ -151,7 +134,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
             end: Alignment.bottomCenter,
             colors: [
               const Color(0xFF1A1A1A),
-              const Color(0xFF8B0000).withOpacity(0.3),
+              const Color(0xFF8B0000).withValues(alpha: 0.3),
             ],
           ),
         ),
@@ -162,13 +145,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ODA KODU
-                const Text(
-                  'Oda Kodu',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(AppL10n.roomCodeLabel,
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -176,7 +155,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: Row(
@@ -200,30 +179,26 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                       onPressed: _generateRoomCode,
                       icon: const Icon(Icons.refresh, color: Colors.white),
                       style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B0000),
-                      ),
+                          backgroundColor: const Color(0xFF8B0000)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 30),
 
                 // ŞİFRE
-                const Text(
-                  'Şifre (Opsiyonel)',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(AppL10n.passwordOptional,
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _passwordController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'Şifre girmezseniz oda herkese açık olur',
-                    hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                    hintText: AppL10n.passwordHintRoom,
+                    hintStyle:
+                        const TextStyle(color: Colors.white38, fontSize: 12),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withValues(alpha: 0.1),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide.none,
@@ -233,13 +208,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                 const SizedBox(height: 30),
 
                 // OYUNCU SAYISI
-                const Text(
-                  'Oyuncu Sayısı',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(AppL10n.playerCountLabel,
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -260,44 +231,33 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                         divisions: 15 - _minPlayerCount,
                         activeColor: const Color(0xFFDC143C),
                         inactiveColor: Colors.white30,
-                        onChanged: (value) {
-                          setState(() {
-                            _playerCount = value.toInt();
-                          });
-                        },
+                        onChanged: (value) =>
+                            setState(() => _playerCount = value.toInt()),
                       ),
                     ),
                   ],
                 ),
                 Text(
-                  '$_minPlayerCount-15 arası',
+                  AppL10n.playerRange(_minPlayerCount),
                   style: const TextStyle(color: Colors.white38, fontSize: 12),
                 ),
                 const SizedBox(height: 30),
 
                 // OYUN MODU
-                const Text(
-                  'Oyun Modu',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(AppL10n.gameModeLabel,
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 10),
-                
-                // Klasik Mod
+
+                // Klasik
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _gameMode = 'classic';
-                    });
-                  },
+                  onTap: () => setState(() => _gameMode = 'classic'),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: _gameMode == 'classic'
-                          ? const Color(0xFFDC143C).withOpacity(0.3)
-                          : Colors.white.withOpacity(0.05),
+                          ? const Color(0xFFDC143C).withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
                         color: _gameMode == 'classic'
@@ -317,26 +277,19 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                               : Colors.white70,
                         ),
                         const SizedBox(width: 15),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Klasik',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                'Vampir, Köylü, Doktor',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white54,
-                                ),
-                              ),
+                              Text(AppL10n.classic,
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white)),
+                              const SizedBox(height: 5),
+                              Text(AppL10n.classicDesc,
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.white54)),
                             ],
                           ),
                         ),
@@ -346,23 +299,18 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                 ),
                 const SizedBox(height: 15),
 
-                // Egzantrik Mod
+                // Egzantrik
                 GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _gameMode = 'eccentric';
-                      // Egzantrik mod minimum 7 oyuncu gerektirir
-                      if (_playerCount < 7) {
-                        _playerCount = 7;
-                      }
-                    });
-                  },
+                  onTap: () => setState(() {
+                    _gameMode = 'eccentric';
+                    if (_playerCount < 7) _playerCount = 7;
+                  }),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: _gameMode == 'eccentric'
-                          ? const Color(0xFFDC143C).withOpacity(0.3)
-                          : Colors.white.withOpacity(0.05),
+                          ? const Color(0xFFDC143C).withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
                         color: _gameMode == 'eccentric'
@@ -382,26 +330,19 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                               : Colors.white70,
                         ),
                         const SizedBox(width: 15),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Egzantrik',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                '+ Rastgele 1-2 özel rol (Âşık, Deli, vs.)\nMinimum 7 oyuncu gerekir',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white54,
-                                ),
-                              ),
+                              Text(AppL10n.eccentric,
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white)),
+                              const SizedBox(height: 5),
+                              Text(AppL10n.eccentricDesc,
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.white54)),
                             ],
                           ),
                         ),
@@ -425,9 +366,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'ODA OLUŞTUR',
-                            style: TextStyle(
+                        : Text(
+                            AppL10n.createRoom,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,

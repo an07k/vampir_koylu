@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../constants/app_l10n.dart';
 import 'create_account_screen.dart';
 import 'login_account_screen.dart';
 import 'guest_login_screen.dart';
@@ -61,9 +62,9 @@ class WelcomeScreen extends StatelessWidget {
                         );
                       },
                       icon: const Icon(Icons.person_add, color: Colors.white),
-                      label: const Text(
-                        'HESAP OLUŞTUR',
-                        style: TextStyle(
+                      label: Text(
+                        AppL10n.createAccount,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -93,9 +94,9 @@ class WelcomeScreen extends StatelessWidget {
                         );
                       },
                       icon: const Icon(Icons.login, color: Colors.white),
-                      label: const Text(
-                        'GİRİŞ YAP',
-                        style: TextStyle(
+                      label: Text(
+                        AppL10n.loginBtn,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -125,9 +126,9 @@ class WelcomeScreen extends StatelessWidget {
                         );
                       },
                       icon: const Icon(Icons.people, color: Colors.white70),
-                      label: const Text(
-                        'MİSAFİR OYNA',
-                        style: TextStyle(
+                      label: Text(
+                        AppL10n.playAsGuest,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white70,
@@ -147,9 +148,9 @@ class WelcomeScreen extends StatelessWidget {
                   Wrap(
                     alignment: WrapAlignment.center,
                     children: [
-                      const Text(
-                        'Uygulamayı kullanarak ',
-                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                      Text(
+                        AppL10n.privacyNoteBefore,
+                        style: const TextStyle(color: Colors.white38, fontSize: 12),
                       ),
                       GestureDetector(
                         onTap: () async {
@@ -158,18 +159,18 @@ class WelcomeScreen extends StatelessWidget {
                             await launchUrl(uri, mode: LaunchMode.externalApplication);
                           }
                         },
-                        child: const Text(
-                          'Gizlilik Politikası',
-                          style: TextStyle(
+                        child: Text(
+                          AppL10n.privacyPolicyLink,
+                          style: const TextStyle(
                             color: Color(0xFFDC143C),
                             fontSize: 12,
                             decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
-                      const Text(
-                        ' ve ',
-                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                      Text(
+                        AppL10n.privacyNoteAnd,
+                        style: const TextStyle(color: Colors.white38, fontSize: 12),
                       ),
                       GestureDetector(
                         onTap: () async {
@@ -178,18 +179,18 @@ class WelcomeScreen extends StatelessWidget {
                             await launchUrl(uri, mode: LaunchMode.externalApplication);
                           }
                         },
-                        child: const Text(
-                          'Kullanım Koşulları',
-                          style: TextStyle(
+                        child: Text(
+                          AppL10n.termsOfUseLink,
+                          style: const TextStyle(
                             color: Color(0xFFDC143C),
                             fontSize: 12,
                             decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
-                      const Text(
-                        '\'nı kabul etmiş sayılırsınız.',
-                        style: TextStyle(color: Colors.white38, fontSize: 12),
+                      Text(
+                        AppL10n.privacyNoteAfter,
+                        style: const TextStyle(color: Colors.white38, fontSize: 12),
                       ),
                     ],
                   ),

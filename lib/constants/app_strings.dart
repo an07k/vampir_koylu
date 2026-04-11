@@ -1,30 +1,26 @@
+// Backward-compat: delegates to AppL10n
+import 'app_l10n.dart';
+
 class AppStrings {
-  // Main menu
-  static const String appTitle = 'VAMPİR KÖYLÜ';
-  static const String createRoom = 'ODA OLUŞTUR';
-  static const String joinRoom = 'ODAYA KATIL';
-  static const String statistics = 'İSTATİSTİKLER';
+  static String get appTitle => AppL10n.appTitle;
+  static String get createRoom => AppL10n.createRoom;
+  static String get joinRoom => AppL10n.joinRoom;
+  static String get statistics => AppL10n.statistics;
+  static String get guest => AppL10n.guest;
+  static String get loading => AppL10n.loading;
+  static String get alreadyInRoom => AppL10n.alreadyInRoom;
+  static String get ok => AppL10n.ok;
 
-  // Profile
-  static const String guest = 'Misafir';
-  static const String loading = 'Yükleniyor...';
+  static String leaveRoomMessage(String roomId) => AppL10n.leaveRoomMessage(roomId);
 
-  // Dialogs
-  static const String alreadyInRoom = 'Zaten bir odanız var';
-  static const String leaveRoomMessage =
-      'Yeni oda oluşturmak için önce "{roomId}" odasından ayrılmanız veya odayı kapatmanız gerekir.';
-  static const String ok = 'TAMAM';
-
-  // Night phase - Âşık
-  static const String asikSelectTarget = 'Aşığını Seç 💘';
-  static const String asikTargetSelected = '💘 Aşığını seçtiniz. Kaderinizi bekliyorsunuz...';
-  static const String asikKinlendiButton = '💔 KİNLENDİ — Kurbanını Seç';
-  static const String asikKinlendiSubmitted = '✓ Kurbanını seçtin. Intikamın alınacak...';
-  static const String asikActionSubmitted = '✓ Aksiyonun gönderildi. Diğer oyuncular bekleniyor...';
-
-  // Night results - Âşık effects
-  static const String asikIntihar = '💔 Âşık aşkının ölümüne dayanamayıp intihar etti!';
-  static const String asikKinlendi = '💔 Âşık sevgilisini yitirdi ve kinlendi...';
-  static const String asikDeli = '💔 Âşık sevgilisini yitirdi ve deli oldu!';
-  static const String asikVengeance = '🔥 Kinlendi âşık {name}\'i intikam için öldürdü!';
+  // Âşık strings
+  static String get asikSelectTarget => AppL10n.asikSelectTarget;
+  static String get asikTargetSelected => AppL10n.asikTargetSelected;
+  static String get asikKinlendiButton => AppL10n.asikKinlendiButton;
+  static String get asikKinlendiSubmitted => AppL10n.asikKinlendiSubmitted;
+  static String get asikActionSubmitted => AppL10n.asikActionSubmitted;
+  static String get asikIntihar => AppL10n.asikIntihar;
+  static String get asikKinlendi => AppL10n.asikKinlendi;
+  static String get asikDeli => AppL10n.asikDeli;
+  static String asikVengeance(String name) => AppL10n.asikVengeance(name);
 }

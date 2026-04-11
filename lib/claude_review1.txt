@@ -1,6 +1,7 @@
 ═══════════════════════════════════════
 🚨 CRITICAL FOR PUBLISHING — MODERATE IT!
 ═══════════════════════════════════════
+Last updated: v1.4.7 (2026-03-15)
 
 1. App Signing ✅
 2. Application ID ✅ — com.anilstudio.moderateit
@@ -34,7 +35,7 @@
 
 - Localization ⏳ Turkish hardcoded — 4-6h
 - Play Store listing (title, desc, screenshots) ⏳ — 2-3h
-- ProGuard ⏳ disabled (isMinifyEnabled=false), re-enable before submit — 1h
+- ProGuard ✅ enabled (isMinifyEnabled=true, isShrinkResources=true) — v1.4.7
 - Firebase Crashlytics ⏳ — 2-3h
 - Analytics ⏳ — 2h
 - Minimum version check ⏳ — 1h
@@ -54,13 +55,12 @@
 ═══════════════════════════════════════
 
 Phase 1 ✅ — signing, app ID, rules, privacy, app name
-Phase 2 (Current) — icons, Play Store listing, Firebase→Play Console, ProGuard, Crashlytics
+Phase 2 (Current) — icons, Play Store listing, Firebase→Play Console, Crashlytics
 Phase 3 — performance, min version check, QA, submit
 
 ⚠️ Remaining Risks
 - Firebase → Play Console not linked
 - No app icons (Play Store rejection risk)
-- ProGuard disabled (larger APK)
 
-Estimated time to publish: 4-6h remaining
+Estimated time to publish: 3-5h remaining
 ═══════════════════════════════════════

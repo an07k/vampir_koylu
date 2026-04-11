@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../constants/app_l10n.dart';
 import 'room_lobby_screen.dart';
 import '../services/auth_service.dart';
 
@@ -24,74 +25,61 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
     _checkExistingRoom();
   }
 
-  // MEVCUT ODA KONTROLÜ
   Future<void> _checkExistingRoom() async {
-  try {
-    final user = await AuthService.getCurrentUser();
-    if (user == null) return;
-    final userId = user['userId'];
+    try {
+      final user = await AuthService.getCurrentUser();
+      if (user == null) return;
+      final userId = user['userId'];
 
-    // Tüm waiting durumundaki odalara bak
-    final roomsSnapshot = await FirebaseFirestore.instance
-        .collection('rooms')
-        .where('gameState', isEqualTo: 'waiting')
-        .get();
+      final roomsSnapshot = await FirebaseFirestore.instance
+          .collection('rooms')
+          .where('gameState', isEqualTo: 'waiting')
+          .get();
 
-    // Kullanıcının bulunduğu odayı bul
-    for (var doc in roomsSnapshot.docs) {
-      final roomData = doc.data();
-      final players = roomData['players'] as Map<String, dynamic>;
-
-      if (players.containsKey(userId)) {
-        setState(() {
-          _existingRoomCode = doc.id;
-          _existingRoomData = roomData;
-        });
-        break;
+      for (var doc in roomsSnapshot.docs) {
+        final roomData = doc.data();
+        final players = roomData['players'] as Map<String, dynamic>;
+        if (players.containsKey(userId)) {
+          setState(() {
+            _existingRoomCode = doc.id;
+            _existingRoomData = roomData;
+          });
+          break;
+        }
       }
+    } catch (e) {
+      debugPrint('❌ Mevcut oda kontrol hatası: $e');
     }
-  } catch (e) {
-    debugPrint('❌ Mevcut oda kontrol hatası: $e');
   }
-}
-  
 
-  // ODA KODU KONTROL ET
   Future<void> _checkRoom() async {
     final roomCode = _roomCodeController.text.trim().toUpperCase();
 
     if (roomCode.isEmpty) {
-      _showErrorDialog('Lütfen oda kodunu girin');
+      _showErrorDialog(AppL10n.enterRoomCode);
       return;
     }
-
     if (roomCode.length != 6) {
-      _showErrorDialog('Oda kodu 6 haneli olmalıdır');
+      _showErrorDialog(AppL10n.roomCodeLength);
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Oda var mı kontrol et
       final roomDoc = await FirebaseFirestore.instance
           .collection('rooms')
           .doc(roomCode)
           .get();
 
       if (!roomDoc.exists) {
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorDialog('Oda bulunamadı');
+        setState(() => _isLoading = false);
+        _showErrorDialog(AppL10n.roomNotFoundError);
         return;
       }
 
       final roomData = roomDoc.data()!;
 
-      // Şifre var mı kontrol et
       if (roomData['password'] != null && !_passwordRequired) {
         setState(() {
           _passwordRequired = true;
@@ -100,140 +88,99 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
         return;
       }
 
-      // Şifre kontrolü
-      if (roomData['password'] != null) {
-        if (_passwordController.text != roomData['password']) {
-          setState(() {
-            _isLoading = false;
-          });
-          _showErrorDialog('Yanlış şifre');
-          return;
-        }
-      }
-
-      // Oyun başlamış mı kontrol et
-      if (roomData['gameState'] != 'waiting') {
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorDialog('Oyun zaten başlamış');
+      if (roomData['password'] != null &&
+          _passwordController.text != roomData['password']) {
+        setState(() => _isLoading = false);
+        _showErrorDialog(AppL10n.wrongPassword);
         return;
       }
 
-      // Kullanıcı zaten odada mı kontrol et
+      if (roomData['gameState'] != 'waiting') {
+        setState(() => _isLoading = false);
+        _showErrorDialog(AppL10n.gameAlreadyStarted);
+        return;
+      }
+
       final user = await AuthService.getCurrentUser();
       if (user == null) {
-        setState(() { _isLoading = false; });
-        _showErrorDialog('Kullanıcı bilgisi bulunamadı');
+        setState(() => _isLoading = false);
+        _showErrorDialog(AppL10n.userNotFoundShort);
         return;
       }
+
       final userId = user['userId'];
       final players = roomData['players'] as Map<String, dynamic>;
+
       if (players.containsKey(userId)) {
-        setState(() {
-          _isLoading = false;
-        });
-        // Zaten odadaysa direkt lobby'ye git
+        setState(() => _isLoading = false);
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => RoomLobbyScreen(roomCode: roomCode),
-            ),
+                builder: (context) => RoomLobbyScreen(roomCode: roomCode)),
           );
         }
         return;
       }
 
-      // Oda dolu mu kontrol et
       if (roomData['playerCount'] >= roomData['maxPlayers']) {
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorDialog('Oda dolu');
+        setState(() => _isLoading = false);
+        _showErrorDialog(AppL10n.roomFull);
         return;
       }
 
-      // Odaya katıl
       await _joinRoom(roomCode);
-
     } catch (e) {
-      debugPrint('❌ Oda kontrol hatası: $e');
-      setState(() {
-        _isLoading = false;
-      });
-      _showErrorDialog('Bir hata oluştu. Tekrar deneyin.');
+      setState(() => _isLoading = false);
+      _showErrorDialog(AppL10n.tryAgain);
     }
   }
 
-  // ODAYA KATIL
   Future<void> _joinRoom(String roomCode) async {
     try {
       final user = await AuthService.getCurrentUser();
       if (user == null) {
-        _showErrorDialog('Kullanıcı bilgisi bulunamadı');
+        _showErrorDialog(AppL10n.userNotFoundShort);
         return;
       }
 
-      final userId = user['userId'];
-      final displayName = user['displayName'];
-      final avatarColor = user['avatarColor'];
-
-      // Odaya oyuncu ekle
-      await FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(roomCode)
-          .update({
-        'players.$userId': {
-          'username': displayName,
-          'avatarColor': avatarColor,
+      await FirebaseFirestore.instance.collection('rooms').doc(roomCode).update({
+        'players.${user['userId']}': {
+          'username': user['displayName'],
+          'avatarColor': user['avatarColor'],
           'isHost': false,
           'joinedAt': FieldValue.serverTimestamp(),
         },
         'playerCount': FieldValue.increment(1),
       });
 
-      debugPrint('✅ Odaya katıldı: $roomCode');
-
-      // Oda bekleme alanına git
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => RoomLobbyScreen(roomCode: roomCode),
-          ),
+              builder: (context) => RoomLobbyScreen(roomCode: roomCode)),
         );
       }
     } catch (e) {
-      debugPrint('❌ Odaya katılma hatası: $e');
-      setState(() {
-        _isLoading = false;
-      });
-      _showErrorDialog('Odaya katılırken hata oluştu');
+      setState(() => _isLoading = false);
+      _showErrorDialog(AppL10n.joinError);
     }
   }
 
-  // HATA DİALOG
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A2A2A),
-        title: const Text(
-          'Hata',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white70),
-        ),
+        title: Text(AppL10n.error,
+            style: const TextStyle(color: Colors.white)),
+        content: Text(message,
+            style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'TAMAM',
-              style: TextStyle(color: Color(0xFFDC143C)),
-            ),
+            child: Text(AppL10n.ok,
+                style: const TextStyle(color: Color(0xFFDC143C))),
           ),
         ],
       ),
@@ -244,7 +191,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Odaya Katıl'),
+        title: Text(AppL10n.joinRoomTitle),
         backgroundColor: const Color(0xFF8B0000),
       ),
       body: Container(
@@ -254,7 +201,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
             end: Alignment.bottomCenter,
             colors: [
               const Color(0xFF1A1A1A),
-              const Color(0xFF8B0000).withOpacity(0.3),
+              const Color(0xFF8B0000).withValues(alpha: 0.3),
             ],
           ),
         ),
@@ -267,33 +214,26 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                 const SizedBox(height: 40),
 
                 // ODA KODU
-                const Text(
-                  'Oda Kodu',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(AppL10n.roomCodeLabel,
+                    style: const TextStyle(
+                        color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _roomCodeController,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                  ),
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4),
                   textAlign: TextAlign.center,
                   textCapitalization: TextCapitalization.characters,
                   maxLength: 6,
                   decoration: InputDecoration(
                     hintText: 'ABC123',
                     hintStyle: const TextStyle(
-                      color: Colors.white38,
-                      letterSpacing: 4,
-                    ),
+                        color: Colors.white38, letterSpacing: 4),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withValues(alpha: 0.1),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide.none,
@@ -301,7 +241,6 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                     counterText: '',
                   ),
                   onChanged: (value) {
-                    // Otomatik büyük harf
                     _roomCodeController.value = TextEditingValue(
                       text: value.toUpperCase(),
                       selection: _roomCodeController.selection,
@@ -310,99 +249,78 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                 ),
                 const SizedBox(height: 30),
 
-                // MEVCUT ODA UYARISI (varsa)
+                // MEVCUT ODA UYARISI
                 if (_existingRoomData != null) ...[
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: Colors.orange,
-                        width: 2,
-                      ),
+                      border: Border.all(color: Colors.orange, width: 2),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.orange,
-                              size: 24,
-                            ),
-                            SizedBox(width: 10),
+                            const Icon(Icons.warning_amber_rounded,
+                                color: Colors.orange, size: 24),
+                            const SizedBox(width: 10),
                             Text(
-                              'Zaten bir odanız var',
-                              style: TextStyle(
-                                color: Colors.orange,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              AppL10n.alreadyInRoomWarning,
+                              style: const TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         const SizedBox(height: 15),
-                        // Oda Bilgileri
                         Row(
                           children: [
-                            const Icon(
-                              Icons.meeting_room,
-                              color: Colors.white70,
-                              size: 18,
-                            ),
+                            const Icon(Icons.meeting_room,
+                                color: Colors.white70, size: 18),
                             const SizedBox(width: 8),
                             Text(
-                              'Oda: $_existingRoomCode',
+                              AppL10n.roomLabel(_existingRoomCode!),
                               style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(
-                              Icons.people,
-                              color: Colors.white70,
-                              size: 18,
-                            ),
+                            const Icon(Icons.people,
+                                color: Colors.white70, size: 18),
                             const SizedBox(width: 8),
                             Text(
-                              '${_existingRoomData!['playerCount']}/${_existingRoomData!['maxPlayers']} Oyuncu',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
+                              AppL10n.playerCountDisplay(
+                                _existingRoomData!['playerCount'],
+                                _existingRoomData!['maxPlayers'],
                               ),
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 14),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(
-                              Icons.gamepad,
-                              color: Colors.white70,
-                              size: 18,
-                            ),
+                            const Icon(Icons.gamepad,
+                                color: Colors.white70, size: 18),
                             const SizedBox(width: 8),
                             Text(
-                              _existingRoomData!['gameMode'] == 'classic'
-                                  ? 'Klasik'
-                                  : 'Egzantrik',
+                              AppL10n.gameModeDisplay(
+                                  _existingRoomData!['gameMode']),
                               style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
+                                  color: Colors.white70, fontSize: 14),
                             ),
                           ],
                         ),
                         const SizedBox(height: 15),
-                        // ODAYA DÖN butonu
                         SizedBox(
                           width: double.infinity,
                           height: 50,
@@ -412,24 +330,21 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => RoomLobbyScreen(
-                                    roomCode: _existingRoomCode!,
-                                  ),
+                                      roomCode: _existingRoomCode!),
                                 ),
                               );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text(
-                              'ODAYA DÖN',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                            child: Text(
+                              AppL10n.returnToRoom,
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
                             ),
                           ),
                         ),
@@ -439,32 +354,27 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                   const SizedBox(height: 30),
                 ],
 
-                // ŞİFRE (Sadece gerekirse göster)
+                // ŞİFRE
                 if (_passwordRequired) ...[
-                  const Text(
-                    'Şifre',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
+                  Text(AppL10n.passwordLabel,
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 14)),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _passwordController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: 'Oda şifresi',
-                      hintStyle: const TextStyle(color: Colors.white38),
+                      hintText: AppL10n.passwordHintJoin,
+                      hintStyle:
+                          const TextStyle(color: Colors.white38),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
+                      fillColor: Colors.white.withValues(alpha: 0.1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
                         borderSide: BorderSide.none,
                       ),
-                      prefixIcon: const Icon(
-                        Icons.lock,
-                        color: Colors.white70,
-                      ),
+                      prefixIcon: const Icon(Icons.lock,
+                          color: Colors.white70),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -483,10 +393,11 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'ODAYA KATIL',
-                            style: TextStyle(
+                        ? const CircularProgressIndicator(
+                            color: Colors.white)
+                        : Text(
+                            AppL10n.joinRoomBtn,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,

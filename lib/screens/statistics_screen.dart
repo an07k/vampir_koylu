@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_l10n.dart';
 import '../services/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -43,7 +44,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('İstatistikler'),
+        title: Text(AppL10n.statisticsTitle),
         backgroundColor: const Color(0xFF8B0000),
       ),
       body: Container(
@@ -59,13 +60,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         ),
         child: _loading
             ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFFDC143C)),
-              )
+                child: CircularProgressIndicator(color: Color(0xFFDC143C)))
             : _userData == null
-                ? const Center(
+                ? Center(
                     child: Text(
-                      'Misafir hesaplar istatistik görüntüleyemez.',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                      AppL10n.guestNoStats,
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
                   )
@@ -90,26 +91,26 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           Text(
             _userData!['displayName'] ?? '',
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 32),
-
-          // Winrate dairesi
           _buildWinRateCircle(winRate),
-
           const SizedBox(height: 32),
-
-          // Stat kartları
           Row(
             children: [
-              Expanded(child: _buildStatCard('🎮', 'Toplam Oyun', '$totalGames', Colors.blue)),
+              Expanded(
+                  child: _buildStatCard(
+                      '🎮', AppL10n.totalGames, '$totalGames', Colors.blue)),
               const SizedBox(width: 12),
-              Expanded(child: _buildStatCard('🏆', 'Kazanılan', '$wins', Colors.green)),
+              Expanded(
+                  child: _buildStatCard(
+                      '🏆', AppL10n.won, '$wins', Colors.green)),
               const SizedBox(width: 12),
-              Expanded(child: _buildStatCard('💀', 'Kaybedilen', '$losses', Colors.red)),
+              Expanded(
+                  child: _buildStatCard(
+                      '💀', AppL10n.lost, '$losses', Colors.red)),
             ],
           ),
         ],
@@ -132,25 +133,22 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           Text(
             '${winRate.toStringAsFixed(1)}%',
             style: const TextStyle(
-              color: Color(0xFFDC143C),
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-            ),
+                color: Color(0xFFDC143C),
+                fontSize: 36,
+                fontWeight: FontWeight.bold),
           ),
-          const Text(
-            'Winrate',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 14,
-              letterSpacing: 2,
-            ),
+          Text(
+            AppL10n.winrate,
+            style: const TextStyle(
+                color: Colors.white54, fontSize: 14, letterSpacing: 2),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String emoji, String label, String value, Color color) {
+  Widget _buildStatCard(
+      String emoji, String label, String value, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -162,23 +160,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         children: [
           Text(emoji, style: const TextStyle(fontSize: 28)),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(value,
+              style: TextStyle(
+                  color: color, fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
-          ),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white54, fontSize: 12)),
         ],
       ),
     );

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../constants/app_strings.dart';
+import '../constants/app_l10n.dart';
 import '../services/auth_service.dart';
 import '../services/night_resolution_service.dart';
 import '../services/day_resolution_service.dart';
@@ -49,15 +49,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showEliminatedPopup(String name) {
-    final messages = [
-      '$name köyden kovuldu!',
-      '$name infaz edildi!',
-      '$name karşı köye gönderildi!',
-      '$name halk mahkemesinde yargılandı!',
-      '$name köyün adaletine kurban gitti!',
-      '$name ipini çekti!',
-      '$name köy meydanında hesap verdi!',
-    ];
+    final messages = AppL10n.eliminatedMessages(name);
     final message = messages[Random().nextInt(messages.length)];
 
     showDialog(
@@ -71,9 +63,9 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             const Text('⚖️', style: TextStyle(fontSize: 60)),
             const SizedBox(height: 16),
-            const Text(
-              'OYLAMA SONUCU',
-              style: TextStyle(
+            Text(
+              AppL10n.voteResult,
+              style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 12,
                 letterSpacing: 2,
@@ -97,8 +89,8 @@ class _GameScreenState extends State<GameScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('TAMAM',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(AppL10n.ok,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -113,27 +105,13 @@ class _GameScreenState extends State<GameScreen> {
 
     if (killedName != null) {
       emoji = '🩸';
-      title = 'SABAH HABERLERİ';
-      final deathMessages = [
-        '$killedName evinde ölü bulundu.',
-        '$killedName tahtalı köye gitti.',
-        '$killedName sabah ezanını duymadı.',
-        'Sabah $killedName\'den ses çıkmadı.',
-        '$killedName geceyi atlatamadı.',
-        '$killedName köy meydanında ölü bulundu.',
-        '$killedName\'in şansı bu gece tükendi.',
-      ];
+      title = AppL10n.morningNews;
+      final deathMessages = AppL10n.deathMessages(killedName);
       messages.add(deathMessages[Random().nextInt(deathMessages.length)]);
     } else {
       emoji = '🌙';
-      title = 'SABAH HABERLERİ';
-      final peaceMessages = [
-        'Bu gece kimse ölmedi.',
-        'Köy huzurla uyudu.',
-        'Vampirler bu gece boş döndü.',
-        'Köy bir gece daha ayakta.',
-        'Bu sabah herkes gözlerini açtı.',
-      ];
+      title = AppL10n.morningNews;
+      final peaceMessages = AppL10n.peaceMessages;
       messages.add(peaceMessages[Random().nextInt(peaceMessages.length)]);
     }
 
@@ -143,23 +121,23 @@ class _GameScreenState extends State<GameScreen> {
       final kinlendiKill = nightResults['kinlendi_kill'] as String?;
 
       if (asikEffect == 'intihar') {
-        messages.add(AppStrings.asikIntihar);
+        messages.add(AppL10n.asikIntihar);
       } else if (asikEffect == 'kinlendi') {
-        messages.add(AppStrings.asikKinlendi);
+        messages.add(AppL10n.asikKinlendi);
       } else if (asikEffect == 'deli_devir') {
-        messages.add(AppStrings.asikDeli);
+        messages.add(AppL10n.asikDeli);
       }
 
       if (kinlendiKill != null) {
-        final kinlendiName = (nightResults['kinlendi_name'] as String?) ?? 'bilinmeyen';
-        messages.add(AppStrings.asikVengeance.replaceAll('{name}', kinlendiName));
+        final kinlendiName = (nightResults['kinlendi_name'] as String?) ?? AppL10n.unknown_;
+        messages.add(AppL10n.asikVengeance(kinlendiName));
       }
     }
 
     // DEDEKTİF SONUCU (sadece dedektif oyuncuya göster)
     if (dedektifTargetName != null && dedektifResult != null) {
-      final roleName = _getRoleDisplayName(dedektifResult);
-      messages.add('🔍 $dedektifTargetName\'ın rolü: $roleName');
+      final roleName = AppL10n.getRoleDisplayName(dedektifResult);
+      messages.add(AppL10n.dedektifResult(dedektifTargetName, roleName));
     }
 
     final message = messages.join('\n');
@@ -203,8 +181,8 @@ class _GameScreenState extends State<GameScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('TAMAM',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(AppL10n.ok,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -213,15 +191,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showTiePopup(List<String> tiedPlayers) {
-    final tieMessages = [
-      'Oylar ayrılı, kimse öldürülemedi!',
-      'Berabere kalmış oylar!',
-      'Köy ikiye bölündü!',
-      'Oy sayımında çetin bir beraberlik!',
-      'Halk karar veremiyor!',
-    ];
+    final tieMessages = AppL10n.tieMessages;
     final message = tieMessages[Random().nextInt(tieMessages.length)];
-    final playerList = tiedPlayers.join(' ve ');
+    final playerList = AppL10n.tiedPlayersJoin(tiedPlayers);
 
     showDialog(
       context: context,
@@ -234,9 +206,9 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             const Text('⚖️', style: TextStyle(fontSize: 60)),
             const SizedBox(height: 16),
-            const Text(
-              'OYLAMA SONUCU',
-              style: TextStyle(
+            Text(
+              AppL10n.voteResult,
+              style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 12,
                 letterSpacing: 2,
@@ -269,8 +241,8 @@ class _GameScreenState extends State<GameScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('TAMAM',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(AppL10n.ok,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -300,17 +272,17 @@ class _GameScreenState extends State<GameScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A2A2A),
-        title: const Text('Odayı Kapat',
-            style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Odayı kapatmak istediğinize emin misiniz? Tüm oyuncular odadan çıkacak.',
-          style: TextStyle(color: Colors.white70),
+        title: Text(AppL10n.closeRoomTitle,
+            style: const TextStyle(color: Colors.white)),
+        content: Text(
+          AppL10n.closeRoomConfirmGame,
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İPTAL',
-                style: TextStyle(color: Colors.white70)),
+            child: Text(AppL10n.cancel,
+                style: const TextStyle(color: Colors.white70)),
           ),
           TextButton(
             onPressed: () async {
@@ -325,8 +297,8 @@ class _GameScreenState extends State<GameScreen> {
                     '/main-menu', (route) => false);
               }
             },
-            child: const Text('KAPAT',
-                style: TextStyle(color: Colors.red)),
+            child: Text(AppL10n.close,
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -400,22 +372,6 @@ class _GameScreenState extends State<GameScreen> {
     return elapsedGameMinutes >= 780;
   }
 
-  String _getRoleDisplayName(String role) {
-    const names = {
-      'vampir': '🧛 Vampir',
-      'koylu': '🧑‍🌾 Köylü',
-      'doktor': '⚕️ Doktor',
-      'dedektif': '🔍 Dedektif',
-      'misafir': '🏠 Misafir',
-      'polis': '👮 Polis',
-      'takipci': '👣 Takipçi',
-      'manipulator': '🎭 Manipülatör',
-      'asik': '💕 Âşık',
-      'deli': '🃏 Deli',
-    };
-    return names[role] ?? role;
-  }
-
   void _showRoleInfo(String role) {
     showModalBottomSheet(
       context: context,
@@ -438,10 +394,10 @@ class _GameScreenState extends State<GameScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Aksiyon gönderildi!'),
+          SnackBar(
+            content: Text(AppL10n.actionSubmitted),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -449,7 +405,7 @@ class _GameScreenState extends State<GameScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hata: $e'),
+            content: Text(AppL10n.errorMsg(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -471,10 +427,10 @@ class _GameScreenState extends State<GameScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Oy gönderildi!'),
+          SnackBar(
+            content: Text(AppL10n.voteSubmitted),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -482,7 +438,7 @@ class _GameScreenState extends State<GameScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hata: $e'),
+            content: Text(AppL10n.errorMsg(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -541,9 +497,9 @@ class _GameScreenState extends State<GameScreen> {
             backgroundColor: roleColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           ),
-          child: const Text(
-            AppStrings.asikSelectTarget,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          child: Text(
+            AppL10n.asikSelectTarget,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
       ),
@@ -577,9 +533,9 @@ class _GameScreenState extends State<GameScreen> {
             backgroundColor: Colors.deepPurple,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           ),
-          child: const Text(
-            AppStrings.asikKinlendiButton,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          child: Text(
+            AppL10n.asikKinlendiButton,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
       ),
@@ -621,7 +577,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'HEDEF SEÇ',
+              AppL10n.selectTarget,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -754,10 +710,10 @@ class _GameScreenState extends State<GameScreen> {
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(color: Colors.red),
               ),
-              child: const Text(
-                '💀 Öldün — Oyunu izleyebilirsin',
+              child: Text(
+                AppL10n.deadPlayerMsg,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.red,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -781,9 +737,9 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
                 icon: const Text('💀', style: TextStyle(fontSize: 16)),
-                label: const Text(
-                  'ÖLÜLER SOHBETİ',
-                  style: TextStyle(
+                label: Text(
+                  AppL10n.deadChat,
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontWeight: FontWeight.bold,
                   ),
@@ -803,15 +759,15 @@ class _GameScreenState extends State<GameScreen> {
         final isKinlendi = players[_userId]?['asikKinlendi'] == true;
 
         if (asikTarget != null && !isKinlendi) {
-          return _buildInfoBox(AppStrings.asikTargetSelected, Colors.pink);
+          return _buildInfoBox(AppL10n.asikTargetSelected, Colors.pink);
         } else if (isKinlendi) {
           if (hasSubmitted) {
-            return _buildInfoBox(AppStrings.asikKinlendiSubmitted, Colors.green);
+            return _buildInfoBox(AppL10n.asikKinlendiSubmitted, Colors.green);
           }
           return _buildAsikKinlendiButton(players, deadPlayers, roleColor);
         } else {
           if (hasSubmitted) {
-            return _buildInfoBox(AppStrings.asikActionSubmitted, Colors.green);
+            return _buildInfoBox(AppL10n.asikActionSubmitted, Colors.green);
           }
           return _buildAsikTargetButton(players, deadPlayers, roleColor);
         }
@@ -828,10 +784,10 @@ class _GameScreenState extends State<GameScreen> {
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: Colors.blue),
             ),
-            child: const Text(
-              '🌙 Gece fazında bir aksiyonun yok. Sabahı bekle...',
+            child: Text(
+              AppL10n.noNightAction,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.blue,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -852,10 +808,10 @@ class _GameScreenState extends State<GameScreen> {
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: Colors.green),
             ),
-            child: const Text(
-              '✓ Aksiyonun gönderildi. Diğer oyuncular bekleniyor...',
+            child: Text(
+              AppL10n.actionSent,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.green,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -867,7 +823,7 @@ class _GameScreenState extends State<GameScreen> {
 
       // Dedektif hakkını kullandıysa aksiyon yok
       if (myRole == 'dedektif' && players[_userId]?['dedektifUsed'] == true) {
-        return _buildInfoBox('🔍 Dedektif hakkını kullandın. Sabahı bekle...', Colors.purple);
+        return _buildInfoBox(AppL10n.dedektifUsed, Colors.purple);
       }
 
       // Aksiyon gönderilmemiş - hedef seçim butonu
@@ -887,8 +843,8 @@ class _GameScreenState extends State<GameScreen> {
 
               if (availableTargets.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Seçilebilecek hedef yok!'),
+                  SnackBar(
+                    content: Text(AppL10n.noTargets),
                     backgroundColor: Colors.orange,
                   ),
                 );
@@ -916,9 +872,9 @@ class _GameScreenState extends State<GameScreen> {
                 borderRadius: BorderRadius.circular(15),
               ),
             ),
-            child: const Text(
-              'HEDEF SEÇ',
-              style: TextStyle(
+            child: Text(
+              AppL10n.selectTarget,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -941,10 +897,10 @@ class _GameScreenState extends State<GameScreen> {
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: Colors.indigo),
           ),
-          child: const Text(
-            '💬 Serbest zaman\nKonuşabilir, tartışabilirsin.',
+          child: Text(
+            AppL10n.freeTimeBox,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.indigo,
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -958,7 +914,7 @@ class _GameScreenState extends State<GameScreen> {
 
     if (hasVoted) {
       final myVoteTarget = dayVotes[_userId];
-      final targetName = players[myVoteTarget]?['username'] ?? 'Bilinmeyen';
+      final targetName = players[myVoteTarget]?['username'] ?? AppL10n.unknown_;
 
       return Padding(
         padding: const EdgeInsets.all(20),
@@ -971,10 +927,10 @@ class _GameScreenState extends State<GameScreen> {
           ),
           child: Column(
             children: [
-              const Text(
-                '✓ Oyunu verdin',
+              Text(
+                AppL10n.voteGiven,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.orange,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -982,7 +938,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Hedef: $targetName',
+                '${AppL10n.voteTargetLabel}$targetName',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white70,
@@ -1010,9 +966,9 @@ class _GameScreenState extends State<GameScreen> {
               borderRadius: BorderRadius.circular(15),
             ),
           ),
-          child: const Text(
-            '☀️ OYLAMA YAP',
-            style: TextStyle(
+          child: Text(
+            AppL10n.doVote,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -1040,8 +996,8 @@ class _GameScreenState extends State<GameScreen> {
 
     if (alivePlayers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Oylanabilecek kimse yok!'),
+        SnackBar(
+          content: Text(AppL10n.noVoteTargets),
           backgroundColor: Colors.orange,
         ),
       );
@@ -1065,9 +1021,9 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              '☀️ KİME OY VERİYORSUN?',
-              style: TextStyle(
+            Text(
+              AppL10n.voteQuestion,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.orange,
@@ -1075,9 +1031,9 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Oylar herkese açık görünecek!',
-              style: TextStyle(
+            Text(
+              AppL10n.votesVisible,
+              style: const TextStyle(
                 fontSize: 12,
                 color: Colors.white70,
               ),
@@ -1153,7 +1109,7 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Oda: ${widget.roomCode}'),
+        title: Text(AppL10n.roomLabel(widget.roomCode)),
         backgroundColor: const Color(0xFF8B0000),
         automaticallyImplyLeading: false,
       ),
@@ -1172,10 +1128,10 @@ class _GameScreenState extends State<GameScreen> {
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(
+            return Center(
               child: Text(
-                'Oda bulunamadı',
-                style: TextStyle(color: Colors.white),
+                AppL10n.roomNotFoundMsg,
+                style: const TextStyle(color: Colors.white),
               ),
             );
           }
@@ -1317,7 +1273,7 @@ class _GameScreenState extends State<GameScreen> {
           }
 
           // Rol bilgileri
-          final roleIcons = {
+          const roleIcons = {
             'vampir': '🧛',
             'koylu': '👨‍🌾',
             'doktor': '🏥',
@@ -1328,19 +1284,6 @@ class _GameScreenState extends State<GameScreen> {
             'polis': '👮',
             'takipci': '👣',
             'manipulator': '🎭',
-          };
-
-          final roleNames = {
-            'vampir': 'VAMPİR',
-            'koylu': 'KÖYLÜ',
-            'doktor': 'DOKTOR',
-            'asik': 'ÂŞIK',
-            'deli': 'DELİ',
-            'dedektif': 'DETEKTİF',
-            'misafir': 'MİSAFİR',
-            'polis': 'POLİS',
-            'takipci': 'TAKİPÇİ',
-            'manipulator': 'MANİPÜLATÖR',
           };
 
           final roleColors = {
@@ -1357,7 +1300,7 @@ class _GameScreenState extends State<GameScreen> {
           };
 
           final myRoleIcon = roleIcons[myRole] ?? '❓';
-          final myRoleName = roleNames[myRole] ?? 'BILINMIYOR';
+          final myRoleName = AppL10n.roleNames[myRole] ?? AppL10n.unknown;
           final myRoleColor = roleColors[myRole] ?? Colors.white;
 
           return Container(
@@ -1392,7 +1335,7 @@ class _GameScreenState extends State<GameScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  currentPhase == 'night' ? 'GECE' : 'GÜNDÜZ',
+                                  currentPhase == 'night' ? AppL10n.night : AppL10n.day,
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
@@ -1431,9 +1374,9 @@ class _GameScreenState extends State<GameScreen> {
                                 horizontal: 8, vertical: 4),
                           ),
                           icon: const Icon(Icons.close, size: 14),
-                          label: const Text(
-                            'ODAYI KAPAT',
-                            style: TextStyle(
+                          label: Text(
+                            AppL10n.closeRoomGame,
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1,
@@ -1455,13 +1398,13 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.shield, color: Colors.purple),
-                              SizedBox(width: 10),
+                              const Icon(Icons.shield, color: Colors.purple),
+                              const SizedBox(width: 10),
                               Text(
-                                'HOST KONTROL PANELİ',
-                                style: TextStyle(
+                                AppL10n.hostControlPanel,
+                                style: const TextStyle(
                                   color: Colors.purple,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -1480,9 +1423,8 @@ class _GameScreenState extends State<GameScreen> {
                               if (!allSubmitted) {
                                 // ignore: use_build_context_synchronously
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'Henüz tüm oyuncular aksiyonlarını göndermedi!'),
+                                  SnackBar(
+                                    content: Text(AppL10n.notAllActed),
                                     backgroundColor: Colors.orange,
                                   ),
                                 );
@@ -1497,8 +1439,8 @@ class _GameScreenState extends State<GameScreen> {
 
                               // ignore: use_build_context_synchronously
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Gece çözümlendi! Gündüz başladı.'),
+                                SnackBar(
+                                  content: Text(AppL10n.nightResolved),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -1509,9 +1451,9 @@ class _GameScreenState extends State<GameScreen> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text(
-                              'GECEYİ BİTİR',
-                              style: TextStyle(
+                            child: Text(
+                              AppL10n.endNight,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1545,7 +1487,7 @@ class _GameScreenState extends State<GameScreen> {
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                votingStarted ? 'OYLAMA AŞAMASI' : 'SERBEST ZAMAN',
+                                votingStarted ? AppL10n.votingPhase : AppL10n.freeTime,
                                 style: TextStyle(
                                   color: votingStarted ? Colors.orange : Colors.indigo,
                                   fontWeight: FontWeight.bold,
@@ -1557,8 +1499,8 @@ class _GameScreenState extends State<GameScreen> {
                           const SizedBox(height: 10),
                           Text(
                             votingStarted
-                                ? '${dayVotes.length} / ${players.keys.where((id) => !deadPlayers.contains(id)).length} oyuncu oy verdi'
-                                : 'Serbest zaman — 22:00\'da gece başlayacak.',
+                                ? AppL10n.votingStatus(dayVotes.length, players.keys.where((id) => !deadPlayers.contains(id)).length)
+                                : AppL10n.freeTimeDesc,
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
@@ -1573,8 +1515,8 @@ class _GameScreenState extends State<GameScreen> {
                                 if (!mounted) return;
                                 // ignore: use_build_context_synchronously
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Oylama sonuçlandı! Serbest zaman başladı.'),
+                                  SnackBar(
+                                    content: Text(AppL10n.votingEnded),
                                     backgroundColor: Colors.green,
                                   ),
                                 );
@@ -1584,8 +1526,8 @@ class _GameScreenState extends State<GameScreen> {
                                 if (!mounted) return;
                                 // ignore: use_build_context_synchronously
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Gece başladı!'),
+                                  SnackBar(
+                                    content: Text(AppL10n.nightStarted),
                                     backgroundColor: Colors.purple,
                                   ),
                                 );
@@ -1598,7 +1540,7 @@ class _GameScreenState extends State<GameScreen> {
                               ),
                             ),
                             child: Text(
-                              votingStarted ? 'OYLAMAYI BİTİR' : 'GECEYİ BAŞLAT',
+                              votingStarted ? AppL10n.endVoting : AppL10n.startNight,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -1632,9 +1574,9 @@ class _GameScreenState extends State<GameScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Rolün',
-                                style: TextStyle(
+                              Text(
+                                AppL10n.myRole,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.white70,
                                 ),
@@ -1659,7 +1601,7 @@ class _GameScreenState extends State<GameScreen> {
                             color: Colors.white,
                             size: 28,
                           ),
-                          tooltip: 'Rol Bilgisi',
+                          tooltip: AppL10n.roleTooltip,
                         ),
                       ],
                     ),
@@ -1673,7 +1615,7 @@ class _GameScreenState extends State<GameScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'OYUNCULAR (${players.length - deadPlayers.length}/${players.length} Canlı)',
+                            AppL10n.playersAlive(players.length - deadPlayers.length, players.length),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -1777,7 +1719,7 @@ class _GameScreenState extends State<GameScreen> {
                                           ),
                                         ),
                                         child: Text(
-                                          isDead ? 'Ölü' : 'Canlı',
+                                          isDead ? AppL10n.dead : AppL10n.alive,
                                           style: TextStyle(
                                             color:
                                                 isDead ? Colors.red : Colors.green,
@@ -1843,9 +1785,9 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                           ),
                           icon: const Text('🧛', style: TextStyle(fontSize: 16)),
-                          label: const Text(
-                            'KOORDİNASYON',
-                            style: TextStyle(
+                          label: Text(
+                            AppL10n.coordination,
+                            style: const TextStyle(
                               color: Color(0xFFDC143C),
                               fontWeight: FontWeight.bold,
                             ),

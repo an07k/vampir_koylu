@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_l10n.dart';
 import 'game_screen.dart';
 
 class RoleRevealScreen extends StatefulWidget {
@@ -20,7 +21,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
   bool _revealed = false;
   late AnimationController _controller;
 
-  // ROL İCON VE RENK
   static const Map<String, String> roleIcons = {
     'vampir': '🧛',
     'koylu': '👨‍🌾',
@@ -31,18 +31,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
     'misafir': '🏠',
     'polis': '👮',
     'takipci': '👣',
-  };
-
-  static const Map<String, String> roleNames = {
-    'vampir': 'VAMPİR',
-    'koylu': 'KÖYLÜ',
-    'doktor': 'DOKTOR',
-    'asik': 'ÂŞIK',
-    'deli': 'DELİ',
-    'dedektif': 'DEDEKTİF',
-    'misafir': 'MİSAFİR',
-    'polis': 'POLİS',
-    'takipci': 'TAKİPÇİ',
   };
 
   static const Map<String, Color> roleColors = {
@@ -67,9 +55,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
   }
 
   void _revealRole() {
-    setState(() {
-      _revealed = true;
-    });
+    setState(() => _revealed = true);
     _controller.forward();
   }
 
@@ -77,7 +63,8 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
   Widget build(BuildContext context) {
     final color = roleColors[widget.role] ?? Colors.white;
     final icon = roleIcons[widget.role] ?? '❓';
-    final name = roleNames[widget.role] ?? 'BILINMIYOR';
+    final name =
+        AppL10n.roleNames[widget.role] ?? AppL10n.unknown;
 
     return Scaffold(
       body: Container(
@@ -96,25 +83,18 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // KAPAL / AÇIK KART
                 GestureDetector(
                   onTap: _revealed ? null : _revealRole,
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 600),
-                    transitionBuilder: (child, animation) {
-                      return ScaleTransition(
-                        scale: animation,
-                        child: child,
-                      );
-                    },
+                    transitionBuilder: (child, animation) =>
+                        ScaleTransition(scale: animation, child: child),
                     child: _revealed
                         ? _revealedCard(color, icon, name)
                         : _hiddenCard(),
                   ),
                 ),
                 const SizedBox(height: 40),
-
-                // DEVAM BUTONU (sadece reveal sonrası)
                 if (_revealed)
                   AnimatedOpacity(
                     opacity: _revealed ? 1.0 : 0.0,
@@ -124,25 +104,21 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => GameScreen(
-                              roomCode: widget.roomCode,
-                            ),
+                            builder: (context) =>
+                                GameScreen(roomCode: widget.roomCode),
                           ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: color,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
+                            borderRadius: BorderRadius.circular(15)),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 50,
-                          vertical: 15,
-                        ),
+                            horizontal: 50, vertical: 15),
                       ),
-                      child: const Text(
-                        'DEVAM',
-                        style: TextStyle(
+                      child: Text(
+                        AppL10n.continue_,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -158,7 +134,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
     );
   }
 
-  // KAPAL KART
   Widget _hiddenCard() {
     return Container(
       key: const ValueKey('hidden'),
@@ -168,26 +143,18 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 2,
-        ),
+            color: Colors.white.withOpacity(0.3), width: 2),
       ),
       child: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '🎴',
-              style: TextStyle(fontSize: 80),
-            ),
+            Text('🎴', style: TextStyle(fontSize: 80)),
             SizedBox(height: 20),
             Text(
               'TAP TO REVEAL',
               style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-                letterSpacing: 2,
-              ),
+                  color: Colors.white70, fontSize: 16, letterSpacing: 2),
             ),
           ],
         ),
@@ -195,7 +162,6 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
     );
   }
 
-  // AÇIK KART
   Widget _revealedCard(Color color, String icon, String name) {
     return Container(
       key: const ValueKey('revealed'),
@@ -204,19 +170,13 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(
-          color: color,
-          width: 2,
-        ),
+        border: Border.all(color: color, width: 2),
       ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              icon,
-              style: const TextStyle(fontSize: 80),
-            ),
+            Text(icon, style: const TextStyle(fontSize: 80)),
             const SizedBox(height: 20),
             Text(
               name,

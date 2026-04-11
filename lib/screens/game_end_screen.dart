@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../constants/app_l10n.dart';
 import '../services/auth_service.dart';
 import 'room_lobby_screen.dart';
 
 class GameEndScreen extends StatefulWidget {
   final String roomCode;
 
-  const GameEndScreen({
-    super.key,
-    required this.roomCode,
-  });
+  const GameEndScreen({super.key, required this.roomCode});
 
   @override
   State<GameEndScreen> createState() => _GameEndScreenState();
@@ -28,19 +26,15 @@ class _GameEndScreenState extends State<GameEndScreen> {
   Future<void> _loadUserId() async {
     final user = await AuthService.getCurrentUser();
     if (mounted && user != null) {
-      setState(() {
-        _userId = user['userId'];
-      });
+      setState(() => _userId = user['userId']);
     }
   }
 
-  // HOST: Odayı sıfırla ve lobiye dön
   Future<void> _resetRoomAndReturn(Map<String, dynamic> players) async {
     if (_isReturning) return;
     setState(() => _isReturning = true);
 
     try {
-      // Rolleri oyuncu verilerinden kaldır
       final updatedPlayers = <String, dynamic>{};
       players.forEach((id, data) {
         final playerData = Map<String, dynamic>.from(data);
@@ -48,7 +42,6 @@ class _GameEndScreenState extends State<GameEndScreen> {
         updatedPlayers[id] = playerData;
       });
 
-      // Odayı bekleme durumuna sıfırla
       await FirebaseFirestore.instance
           .collection('rooms')
           .doc(widget.roomCode)
@@ -72,8 +65,8 @@ class _GameEndScreenState extends State<GameEndScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => RoomLobbyScreen(roomCode: widget.roomCode),
-          ),
+              builder: (context) =>
+                  RoomLobbyScreen(roomCode: widget.roomCode)),
         );
       }
     } catch (e) {
@@ -81,7 +74,7 @@ class _GameEndScreenState extends State<GameEndScreen> {
         setState(() => _isReturning = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hata: $e'),
+            content: Text(AppL10n.errorMsg(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -89,23 +82,17 @@ class _GameEndScreenState extends State<GameEndScreen> {
     }
   }
 
-  // DİĞER OYUNCU: Sadece lobiye dön
   void _returnToRoom() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => RoomLobbyScreen(roomCode: widget.roomCode),
-      ),
+          builder: (context) => RoomLobbyScreen(roomCode: widget.roomCode)),
     );
   }
 
-  // ANA MENÜ - hesaptan çıkış yapmadan
   void _goToMainMenu() {
     Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/main-menu',
-      (route) => false,
-    );
+        context, '/main-menu', (route) => false);
   }
 
   Map<String, dynamic> _getWinnerInfo(String winner) {
@@ -113,29 +100,29 @@ class _GameEndScreenState extends State<GameEndScreen> {
       case 'vampir':
         return {
           'icon': '🧛',
-          'title': 'VAMPİRLER KAZANDI!',
-          'subtitle': 'Karanlık galip geldi...',
+          'title': AppL10n.vampireWin,
+          'subtitle': AppL10n.vampireWinSub,
           'color': const Color(0xFFDC143C),
         };
       case 'koylu':
         return {
           'icon': '👨‍🌾',
-          'title': 'KÖYLÜLER KAZANDI!',
-          'subtitle': 'Köy kurtarıldı!',
+          'title': AppL10n.villagerWin,
+          'subtitle': AppL10n.villagerWinSub,
           'color': const Color(0xFF32CD32),
         };
       case 'deli':
         return {
           'icon': '🤪',
-          'title': 'DELİ KAZANDI!',
-          'subtitle': 'Kaos her şeyi ele geçirdi!',
+          'title': AppL10n.madWin,
+          'subtitle': AppL10n.madWinSub,
           'color': const Color(0xFFFF8C00),
         };
       default:
         return {
           'icon': '❓',
-          'title': 'OYUN BİTTİ',
-          'subtitle': 'Bilinmeyen sonuç',
+          'title': AppL10n.gameOver,
+          'subtitle': AppL10n.unknownResult,
           'color': Colors.grey,
         };
     }
@@ -151,21 +138,21 @@ class _GameEndScreenState extends State<GameEndScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(
-              child: Text(
-                'Oda bulunamadı',
-                style: TextStyle(color: Colors.white),
-              ),
+            return Center(
+              child: Text(AppL10n.roomNotFoundMsg,
+                  style: const TextStyle(color: Colors.white)),
             );
           }
 
-          final roomData = snapshot.data!.data() as Map<String, dynamic>;
+          final roomData =
+              snapshot.data!.data() as Map<String, dynamic>;
           final winner = roomData['winner'] ?? 'unknown';
-          final winnerIds = List<String>.from(roomData['winnerIds'] ?? []);
-          final players = Map<String, dynamic>.from(roomData['players'] ?? {});
+          final winnerIds =
+              List<String>.from(roomData['winnerIds'] ?? []);
+          final players =
+              Map<String, dynamic>.from(roomData['players'] ?? {});
           final hostId = roomData['hostId'];
           final isHost = _userId == hostId;
-
           final winnerInfo = _getWinnerInfo(winner);
 
           return Container(
@@ -183,12 +170,9 @@ class _GameEndScreenState extends State<GameEndScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    winnerInfo['icon'],
-                    style: const TextStyle(fontSize: 80),
-                  ),
+                  Text(winnerInfo['icon'],
+                      style: const TextStyle(fontSize: 80)),
                   const SizedBox(height: 20),
-
                   Text(
                     winnerInfo['title'],
                     style: TextStyle(
@@ -199,13 +183,10 @@ class _GameEndScreenState extends State<GameEndScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-
                   Text(
                     winnerInfo['subtitle'],
                     style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
+                        fontSize: 16, color: Colors.white70),
                   ),
                   const SizedBox(height: 40),
 
@@ -217,14 +198,15 @@ class _GameEndScreenState extends State<GameEndScreen> {
                       color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: (winnerInfo['color'] as Color).withValues(alpha: 0.5),
+                        color: (winnerInfo['color'] as Color)
+                            .withValues(alpha: 0.5),
                         width: 2,
                       ),
                     ),
                     child: Column(
                       children: [
                         Text(
-                          '🏆 KAZANANLAR',
+                          AppL10n.winners,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -235,13 +217,14 @@ class _GameEndScreenState extends State<GameEndScreen> {
                         const SizedBox(height: 15),
                         ...winnerIds.map((playerId) {
                           final playerData = players[playerId];
-                          if (playerData == null) return const SizedBox.shrink();
-
+                          if (playerData == null) {
+                            return const SizedBox.shrink();
+                          }
                           return Container(
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
+                              color: Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
@@ -258,7 +241,8 @@ class _GameEndScreenState extends State<GameEndScreen> {
                                   ),
                                   child: Center(
                                     child: Text(
-                                      playerData['username'][0].toUpperCase(),
+                                      playerData['username'][0]
+                                          .toUpperCase(),
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -279,25 +263,23 @@ class _GameEndScreenState extends State<GameEndScreen> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: Colors.amber.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: Colors.amber
+                                        .withValues(alpha: 0.2),
+                                    borderRadius:
+                                        BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: Colors.amber,
-                                      width: 1,
-                                    ),
+                                        color: Colors.amber, width: 1),
                                   ),
                                   child: const Text(
                                     '💰 +10',
                                     style: TextStyle(
-                                      color: Colors.amber,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                        color: Colors.amber,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
@@ -314,39 +296,36 @@ class _GameEndScreenState extends State<GameEndScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 30),
                     child: Column(
                       children: [
-                        // ODAYA DÖN - Host için (room'u sıfırlar), diğerleri için sadece navigate
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: _isReturning
                                 ? null
-                                : () {
-                                    if (isHost) {
-                                      _resetRoomAndReturn(players);
-                                    } else {
-                                      _returnToRoom();
-                                    }
-                                  },
+                                : () => isHost
+                                    ? _resetRoomAndReturn(players)
+                                    : _returnToRoom(),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: winnerInfo['color'],
-                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 15),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
+                                  borderRadius:
+                                      BorderRadius.circular(15)),
                             ),
                             icon: _isReturning
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
+                                        color: Colors.white,
+                                        strokeWidth: 2),
                                   )
                                 : const Icon(Icons.meeting_room,
                                     color: Colors.white),
                             label: Text(
-                              _isReturning ? 'Dönülüyor...' : 'ODAYA DÖN',
+                              _isReturning
+                                  ? AppL10n.returning
+                                  : AppL10n.returnToRoomBtn,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -355,8 +334,6 @@ class _GameEndScreenState extends State<GameEndScreen> {
                             ),
                           ),
                         ),
-
-                        // ANA MENÜ - sadece misafir oyuncular için
                         if (!isHost) ...[
                           const SizedBox(height: 12),
                           SizedBox(
@@ -364,16 +341,17 @@ class _GameEndScreenState extends State<GameEndScreen> {
                             child: ElevatedButton(
                               onPressed: _goToMainMenu,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3A3A3A),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 15),
+                                backgroundColor:
+                                    const Color(0xFF3A3A3A),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 15),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
+                                    borderRadius:
+                                        BorderRadius.circular(15)),
                               ),
-                              child: const Text(
-                                'ANA MENÜ',
-                                style: TextStyle(
+                              child: Text(
+                                AppL10n.mainMenu,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white70,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_l10n.dart';
 import '../services/auth_service.dart';
 
 class LoginAccountScreen extends StatefulWidget {
@@ -11,7 +12,7 @@ class LoginAccountScreen extends StatefulWidget {
 class _LoginAccountScreenState extends State<LoginAccountScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -20,31 +21,26 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
     final password = _passwordController.text;
 
     if (nickname.isEmpty) {
-      _showErrorDialog('Nickname boş olamaz');
+      _showErrorDialog(AppL10n.nicknameEmpty);
       return;
     }
 
     if (password.isEmpty) {
-      _showErrorDialog('Şifre boş olamaz');
+      _showErrorDialog(AppL10n.passwordEmpty);
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     final result = await AuthService.login(
       nickname: nickname,
       password: password,
     );
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
 
     if (result['success']) {
       if (mounted) {
-        // Başarılı, ana menüye git
         Navigator.pushReplacementNamed(context, '/main-menu');
       }
     } else {
@@ -57,21 +53,13 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A2A2A),
-        title: const Text(
-          'Hata',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white70),
-        ),
+        title: Text(AppL10n.error, style: const TextStyle(color: Colors.white)),
+        content: Text(message, style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'TAMAM',
-              style: TextStyle(color: Color(0xFFDC143C)),
-            ),
+            child: Text(AppL10n.ok,
+                style: const TextStyle(color: Color(0xFFDC143C))),
           ),
         ],
       ),
@@ -82,7 +70,7 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Giriş Yap'),
+        title: Text(AppL10n.loginTitle),
         backgroundColor: const Color(0xFF8B0000),
       ),
       body: Container(
@@ -92,7 +80,7 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
             end: Alignment.bottomCenter,
             colors: [
               const Color(0xFF1A1A1A),
-              const Color(0xFF8B0000).withOpacity(0.3),
+              const Color(0xFF8B0000).withValues(alpha: 0.3),
             ],
           ),
         ),
@@ -103,24 +91,14 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 60),
-
-                // LOGO
                 const Center(
-                  child: Text(
-                    '🧛',
-                    style: TextStyle(fontSize: 80),
-                  ),
+                  child: Text('🧛', style: TextStyle(fontSize: 80)),
                 ),
                 const SizedBox(height: 40),
 
                 // NICKNAME
-                const Text(
-                  'Nickname',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(AppL10n.nicknameLabel.split(' ').first,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _nicknameController,
@@ -129,24 +107,20 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
                     hintText: 'anilgamer123',
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withValues(alpha: 0.1),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide.none,
                     ),
-                    prefixIcon: const Icon(Icons.account_circle, color: Colors.white70),
+                    prefixIcon:
+                        const Icon(Icons.account_circle, color: Colors.white70),
                   ),
                 ),
                 const SizedBox(height: 20),
 
                 // ŞİFRE
-                const Text(
-                  'Şifre',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(AppL10n.passwordLabel,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _passwordController,
@@ -156,7 +130,7 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
                     hintText: '••••',
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withValues(alpha: 0.1),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide.none,
@@ -164,14 +138,13 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
                     prefixIcon: const Icon(Icons.lock, color: Colors.white70),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                         color: Colors.white70,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                 ),
@@ -191,9 +164,9 @@ class _LoginAccountScreenState extends State<LoginAccountScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'GİRİŞ YAP',
-                            style: TextStyle(
+                        : Text(
+                            AppL10n.loginBtn,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,

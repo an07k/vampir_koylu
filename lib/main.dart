@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'constants/app_colors.dart';
-import 'constants/app_strings.dart';
+import 'constants/app_l10n.dart';
+import 'constants/locale_manager.dart';
 import 'themes/app_theme.dart';
 import 'package:vampir_koylu/screens/welcome_screen.dart';
 import 'screens/create_room_screen.dart';
@@ -14,6 +15,7 @@ import 'services/user_data_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await loadLocale();
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -26,7 +28,7 @@ void main() async {
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
-              'Baglanti hatasi: $e',
+              'Connection error: $e',
               style: const TextStyle(color: Colors.red, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -36,7 +38,12 @@ void main() async {
     ));
     return;
   }
-  runApp(const VampirKoyluApp());
+  runApp(
+    ValueListenableBuilder<String>(
+      valueListenable: localeNotifier,
+      builder: (context, lang, _) => const VampirKoyluApp(),
+    ),
+  );
 }
 
 class VampirKoyluApp extends StatelessWidget {
@@ -45,7 +52,7 @@ class VampirKoyluApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: AppStrings.appTitle,
+      title: AppL10n.appTitle,
       theme: AppTheme.darkTheme,
       home: const AuthChecker(),
       routes: {
@@ -55,7 +62,7 @@ class VampirKoyluApp extends StatelessWidget {
   }
 }
 
-// AUTH CHECKER - Kullanıcı giriş yapmış mı kontrol et
+// AUTH CHECKER
 class AuthChecker extends StatelessWidget {
   const AuthChecker({super.key});
 
@@ -125,20 +132,20 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          AppStrings.alreadyInRoom,
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppL10n.alreadyInRoom,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: Text(
-          AppStrings.leaveRoomMessage.replaceFirst('{roomId}', roomId),
+          AppL10n.leaveRoomMessage(roomId),
           style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              AppStrings.ok,
-              style: TextStyle(color: AppColors.secondary),
+            child: Text(
+              AppL10n.ok,
+              style: const TextStyle(color: AppColors.secondary),
             ),
           ),
         ],
@@ -175,7 +182,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         }
 
         final userData = snapshot.data!;
-        final displayName = userData['displayName'] ?? AppStrings.loading;
+        final displayName = userData['displayName'] ?? AppL10n.loading;
         final nickname = userData['nickname'];
         final avatarColor = userData['avatarColor'] ?? '#DC143C';
         final isGuest = userData['isGuest'] ?? false;
@@ -219,12 +226,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Text('🧛', style: TextStyle(fontSize: 80)),
-          SizedBox(height: 20),
+        children: [
+          const Text('🧛', style: TextStyle(fontSize: 80)),
+          const SizedBox(height: 20),
           Text(
-            AppStrings.appTitle,
-            style: TextStyle(
+            AppL10n.appTitle,
+            style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
               color: AppColors.secondary,
@@ -242,13 +249,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       child: Column(
         children: [
           MenuButton(
-            text: AppStrings.createRoom,
+            text: AppL10n.createRoom,
             icon: Icons.add_circle,
             onPressed: _navigateToCreateRoom,
           ),
           const SizedBox(height: 15),
           MenuButton(
-            text: AppStrings.joinRoom,
+            text: AppL10n.joinRoom,
             icon: Icons.meeting_room,
             onPressed: () {
               Navigator.push(
@@ -259,7 +266,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           ),
           const SizedBox(height: 15),
           MenuButton(
-            text: AppStrings.statistics,
+            text: AppL10n.statistics,
             icon: Icons.bar_chart,
             onPressed: () {
               Navigator.push(
@@ -270,7 +277,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           ),
           const SizedBox(height: 15),
           MenuButton(
-            text: 'Ayarlar',
+            text: AppL10n.settings,
             icon: Icons.settings,
             onPressed: () {
               Navigator.push(
@@ -362,9 +369,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.warning, width: 1),
               ),
-              child: const Text(
-                AppStrings.guest,
-                style: TextStyle(fontSize: 12, color: AppColors.warning),
+              child: Text(
+                AppL10n.guest,
+                style: const TextStyle(fontSize: 12, color: AppColors.warning),
               ),
             ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../constants/app_l10n.dart';
 
 class VampireChatSheet extends StatefulWidget {
   final String roomCode;
@@ -84,14 +85,14 @@ class _VampireChatSheetState extends State<VampireChatSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('🧛', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
+                    const Text('🧛', style: TextStyle(fontSize: 20)),
+                    const SizedBox(width: 8),
                     Text(
-                      'VAMPİR SOHBETI',
-                      style: TextStyle(
+                      AppL10n.vampireChatTitle,
+                      style: const TextStyle(
                         color: Color(0xFFDC143C),
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -101,9 +102,9 @@ class _VampireChatSheetState extends State<VampireChatSheet> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Sadece vampirler görebilir',
-                  style: TextStyle(color: Colors.red, fontSize: 11),
+                Text(
+                  AppL10n.vampireChatSub,
+                  style: const TextStyle(color: Colors.red, fontSize: 11),
                 ),
               ],
             ),

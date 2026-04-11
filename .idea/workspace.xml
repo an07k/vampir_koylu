@@ -5,11 +5,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2d45454b-0d7c-40b3-8876-14a2255547d3" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/claude_review1.txt" beforeDir="false" afterPath="$PROJECT_DIR$/lib/claude_review1.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/constants/app_strings.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/constants/app_strings.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/create_account_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/create_account_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/create_room_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/create_room_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/game_end_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/game_end_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/game_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/game_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/guest_login_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/guest_login_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/join_room_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/join_room_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/login_account_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/login_account_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/role_reveal_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/role_reveal_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/screens/room_lobby_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/room_lobby_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/services/day_resolution_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/services/day_resolution_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/services/role_distribution.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/services/role_distribution.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/settings_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/settings_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/statistics_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/statistics_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/welcome_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/welcome_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/widgets/dead_chat_sheet.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/widgets/dead_chat_sheet.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/widgets/role_info_dialog.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/widgets/role_info_dialog.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/widgets/vampire_chat_sheet.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/widgets/vampire_chat_sheet.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/screens/widgets/vampire_coord_sheet.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/screens/widgets/vampire_coord_sheet.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

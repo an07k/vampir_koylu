@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../constants/app_l10n.dart';
 
 class DeadChatSheet extends StatefulWidget {
   final String roomCode;
@@ -85,14 +86,14 @@ class _DeadChatSheetState extends State<DeadChatSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('💀', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
+                    const Text('💀', style: TextStyle(fontSize: 20)),
+                    const SizedBox(width: 8),
                     Text(
-                      'ÖLÜLER SOHBETI',
-                      style: TextStyle(
+                      AppL10n.deadChatTitle,
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -102,9 +103,9 @@ class _DeadChatSheetState extends State<DeadChatSheet> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Sadece ölüler görebilir',
-                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                Text(
+                  AppL10n.deadChatSub,
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
               ],
             ),
