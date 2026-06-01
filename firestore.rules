@@ -1,31 +1,43 @@
 rules_version = '2';
+
+// =============================================================================
+// TRANSITIONAL RULES (deploy now).
+//
+// Every access requires an authenticated user (much better than `if true`),
+// but collections are not yet locked down per-document. This keeps the current
+// flat-schema game working while the platform shell (Faz 1) is built.
+//
+// The full strict target ruleset (per-seat ownership, host-only phase, secret
+// role docs) lives in `docs/firestore.rules.target` and replaces this file at
+// Faz 1 deploy time.
+//
+// Deploy:  firebase deploy --only firestore:rules
+//   (or paste into Firebase Console > Firestore > Rules > Publish)
+// =============================================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ROOMS — game rooms created and managed by players
-    // No Firebase Auth in this app; room access is controlled at the app level
-    match /rooms/{roomCode} {
-      allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['hostId', 'gameMode', 'gameState', 'createdAt']);
-      allow update: if resource.data.gameState != null;
-      allow delete: if true;
+    function isAuthed() {
+      return request.auth != null;
     }
 
-    // USERS — player profiles and gold balances
-    match /users/{userId} {
-      allow read: if true;
-      allow write: if true;
+    match /users/{uid} {
+      allow read: if isAuthed();
+      allow write: if isAuthed();
     }
 
-    // GUESTS — temporary guest sessions
-    match /guests/{guestId} {
-      allow read, write: if true;
+    // Recursive: covers the room doc AND its subcollections (e.g. matches/).
+    match /rooms/{roomCode}/{document=**} {
+      allow read, write: if isAuthed();
     }
 
-    // GAME HISTORY — post-game records (read-only for clients, written by host)
     match /game_history/{docId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if isAuthed();
+    }
+
+    // Legacy guest sessions (no longer written by the new auth flow).
+    match /guests/{guestId} {
+      allow read, write: if isAuthed();
     }
   }
 }

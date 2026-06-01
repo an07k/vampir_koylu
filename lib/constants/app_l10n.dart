@@ -40,7 +40,7 @@ class AppL10n {
   static String get nicknameLabel => _isTr ? 'Nickname (Giriş için)' : 'Nickname (for login)';
   static String get gameNameLabel => _isTr ? 'Oyun İsmi' : 'Game Name';
   static String get passwordLabel => _isTr ? 'Şifre' : 'Password';
-  static String get passwordHint => _isTr ? 'En az 4 karakter' : 'At least 4 characters';
+  static String get passwordHint => _isTr ? 'En az 6 karakter' : 'At least 6 characters';
   static String get passwordConfirmLabel => _isTr ? 'Şifre Tekrar' : 'Confirm Password';
   static String get passwordConfirmHint => _isTr ? 'Şifreyi tekrar girin' : 'Re-enter password';
   static String get passwordMismatch => _isTr ? 'Şifreler eşleşmiyor' : 'Passwords do not match';
@@ -405,6 +405,8 @@ class AppL10n {
   static String get gameOver => _isTr ? 'OYUN BİTTİ' : 'GAME OVER';
   static String get unknownResult => _isTr ? 'Bilinmeyen sonuç' : 'Unknown result';
   static String get winners => _isTr ? '🏆 KAZANANLAR' : '🏆 WINNERS';
+  static String get youWon => _isTr ? '🎉 KAZANDIN!' : '🎉 YOU WON!';
+  static String get youLost => _isTr ? '☠️ KAYBETTİN' : '☠️ YOU LOST';
   static String get returning => _isTr ? 'Dönülüyor...' : 'Returning...';
   static String get returnToRoomBtn => _isTr ? 'ODAYA DÖN' : 'RETURN TO ROOM';
   static String get mainMenu => _isTr ? 'ANA MENÜ' : 'MAIN MENU';

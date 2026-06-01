@@ -1,0 +1,116 @@
+rules_version = '2';
+
+// =============================================================================
+// Game-platform Firestore rules (free-tier / no Cloud Functions).
+//
+// Authority model: there is no trusted server compute. We push every
+// protection we CAN into rules (auth required, seat ownership, host-only
+// phase mutation, capacity) and accept the gaps that genuinely need a server:
+//
+//   - Gold/stats are self-written by each client (own users doc). A client
+//     could lie about winning. Accepted for a friends-group casual game.
+//   - The host resolves matches client-side, so the host can READ every
+//     seat's secret role/action. In multi-phone mode this means the host can
+//     theoretically cheat. Accepted; documented in memory + ROADMAP.
+//
+// Schema:
+//   games/{gameId}                                  static catalog (read-only)
+//   users/{uid}                                     profile (own-write)
+//   rooms/{roomCode}                                lobby; public `seats` map
+//   rooms/{roomCode}/matches/{matchId}              public match state (host-write)
+//   rooms/{roomCode}/matches/{matchId}/private/{s}  secret per-seat state (role)
+//   rooms/{roomCode}/matches/{matchId}/actions/{s}  per-seat night actions/votes
+//
+// DO NOT DEPLOY until the platform shell (Faz 1) writes this schema, otherwise
+// the current flat-schema app will break. Deploy with:
+//   firebase deploy --only firestore:rules
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers -------------------------------------------------------------
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function roomData(roomCode) {
+      return get(/databases/$(database)/documents/rooms/$(roomCode)).data;
+    }
+
+    function isRoomHost(roomCode) {
+      return isAuthed() && request.auth.uid == roomData(roomCode).hostUid;
+    }
+
+    // deviceUid that owns a given seat (multi: the player's uid; single: host uid)
+    function seatOwner(roomCode, seatId) {
+      return roomData(roomCode).seats[seatId].deviceUid;
+    }
+
+    // ---- games: static catalog ----------------------------------------------
+    // Seeded manually (console) or via a one-off admin script. No client writes.
+    match /games/{gameId} {
+      allow read: if isAuthed();
+      allow write: if false;
+    }
+
+    // ---- users: profiles -----------------------------------------------------
+    // Readable by any authed user (we show display names everywhere).
+    // Writable only by the owner. NOTE: cannot prevent a user inflating their
+    // own gold without a trusted server — accepted trade-off.
+    match /users/{uid} {
+      allow read: if isAuthed();
+      allow create, update: if isAuthed() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // ---- rooms: game-agnostic lobby -----------------------------------------
+    match /rooms/{roomCode} {
+      allow read: if isAuthed();
+
+      // Creator must be the host.
+      allow create: if isAuthed()
+        && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['gameId', 'hostUid', 'mode', 'status', 'maxSeats']);
+
+      // Host has full control. Otherwise a non-host may only add/remove THEIR
+      // own seat (multi-phone join/leave), while the room is in lobby and
+      // capacity is respected.
+      allow update: if isAuthed() && (
+        request.auth.uid == resource.data.hostUid
+        || (
+          resource.data.status == 'lobby'
+          && request.resource.data.seats.diff(resource.data.seats)
+               .affectedKeys().hasOnly([request.auth.uid])
+          && request.resource.data.seats.size() <= resource.data.maxSeats
+        )
+      );
+
+      allow delete: if isAuthed() && request.auth.uid == resource.data.hostUid;
+
+      // ---- matches: per-round game state (host-authoritative) ----------------
+      match /matches/{matchId} {
+        allow read: if isAuthed();
+        allow create, update, delete: if isRoomHost(roomCode);
+
+        // Secret per-seat state (e.g. role). Readable by the seat owner or the
+        // host (host must read to resolve). Written only by the host.
+        match /private/{seatId} {
+          allow read: if isAuthed()
+            && (request.auth.uid == seatOwner(roomCode, seatId) || isRoomHost(roomCode));
+          allow write: if isRoomHost(roomCode);
+        }
+
+        // Per-seat night actions / votes. Owner writes their own; host writes
+        // any (single-phone, acting on behalf of seats). Readable by owner+host.
+        match /actions/{seatId} {
+          allow read: if isAuthed()
+            && (request.auth.uid == seatOwner(roomCode, seatId) || isRoomHost(roomCode));
+          allow create, update: if isAuthed()
+            && (request.auth.uid == seatOwner(roomCode, seatId) || isRoomHost(roomCode));
+          allow delete: if isRoomHost(roomCode);
+        }
+      }
+    }
+  }
+}

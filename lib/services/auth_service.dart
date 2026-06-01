@@ -1,88 +1,67 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:math';
-import 'package:shared_preferences/shared_preferences.dart';
 
+/// Firebase Auth based authentication.
+///
+/// - Guests       -> Firebase Anonymous Auth
+/// - Accounts     -> Firebase Email/Password (email derived from nickname)
+///
+/// Every user (guest or account) has a profile document at `users/{uid}`.
+/// The Firebase Auth uid IS the userId used throughout the app.
 class AuthService {
-  // RANDOM SALT OLUŞTUR
-  static String generateSalt() {
-    final random = Random.secure();
-    final saltBytes = List<int>.generate(16, (_) => random.nextInt(256));
-    return base64.encode(saltBytes);
-  }
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // ŞİFREYİ HASH'LE (salt + şifre)
-  static String hashPassword(String password, String salt) {
-    final bytes = utf8.encode('$salt$password');
-    return sha256.convert(bytes).toString();
-  }
+  /// Nicknames are not real emails; we derive a stable synthetic email so we
+  /// can use Firebase Email/Password while keeping the nickname-based UX.
+  /// Firebase enforces email uniqueness -> nickname uniqueness comes for free.
+  static const String _emailDomain = 'vampirkoylu.app';
 
-  /// Check if nickname is available
-  /// Returns: true if not taken, false if already in use
-  static Future<bool> isNicknameAvailable(String nickname) async {
-    assert(nickname.isNotEmpty, 'nickname cannot be empty');
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('nickname', isEqualTo: nickname)
-          .get();
-      return snapshot.docs.isEmpty;
-    } catch (e) {
-      debugPrint('❌ Error checking nickname availability: $e');
-      rethrow;
-    }
-  }
+  static String _nicknameToEmail(String nickname) =>
+      '${nickname.trim().toLowerCase()}@$_emailDomain';
 
-  // HESAP OLUŞTUR
+  // CREATE ACCOUNT
   static Future<Map<String, dynamic>> createAccount({
     required String nickname,
     required String displayName,
     required String password,
     required String avatarColor,
   }) async {
+    final n = nickname.trim();
+    final d = displayName.trim();
+
+    // VALIDATION
+    if (n.isEmpty) return {'success': false, 'error': 'Nickname boş olamaz'};
+    if (n.length < 3) {
+      return {'success': false, 'error': 'Nickname en az 3 karakter olmalı'};
+    }
+    if (n.length > 20) {
+      return {'success': false, 'error': 'Nickname en fazla 20 karakter olmalı'};
+    }
+    if (d.isEmpty) return {'success': false, 'error': 'Oyun ismi boş olamaz'};
+    if (d.length < 2) {
+      return {'success': false, 'error': 'Oyun ismi en az 2 karakter olmalı'};
+    }
+    if (d.length > 15) {
+      return {'success': false, 'error': 'Oyun ismi en fazla 15 karakter olmalı'};
+    }
+    if (password.length < 6) {
+      // Firebase requires >= 6 chars for email/password.
+      return {'success': false, 'error': 'Şifre en az 6 karakter olmalı'};
+    }
+
     try {
-      // VALİDASYON
-      if (nickname.isEmpty) {
-        return {'success': false, 'error': 'Nickname boş olamaz'};
-      }
-      if (nickname.length < 3) {
-        return {'success': false, 'error': 'Nickname en az 3 karakter olmalı'};
-      }
-      if (nickname.length > 20) {
-        return {'success': false, 'error': 'Nickname en fazla 20 karakter olmalı'};
-      }
-      if (displayName.isEmpty) {
-        return {'success': false, 'error': 'Oyun ismi boş olamaz'};
-      }
-      if (displayName.length < 2) {
-        return {'success': false, 'error': 'Oyun ismi en az 2 karakter olmalı'};
-      }
-      if (displayName.length > 15) {
-        return {'success': false, 'error': 'Oyun ismi en fazla 15 karakter olmalı'};
-      }
-      if (password.length < 4) {
-        return {'success': false, 'error': 'Şifre en az 4 karakter olmalı'};
-      }
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: _nicknameToEmail(n),
+        password: password,
+      );
+      final uid = cred.user!.uid;
 
-      // Nickname kullanılmış mı kontrol et
-      final isAvailable = await isNicknameAvailable(nickname);
-      if (!isAvailable) {
-        return {'success': false, 'error': 'Bu nickname zaten alınmış'};
-      }
-
-      // Salt ve hash oluştur
-      final salt = generateSalt();
-      final hashedPassword = hashPassword(password, salt);
-
-      // Firestore'a kaydet
-      final docRef = FirebaseFirestore.instance.collection('users').doc();
-      await docRef.set({
-        'nickname': nickname,
-        'displayName': displayName,
-        'salt': salt,
-        'password': hashedPassword,
+      await _db.collection('users').doc(uid).set({
+        'nickname': n,
+        'nicknameLower': n.toLowerCase(),
+        'displayName': d,
         'avatarColor': avatarColor,
         'isGuest': false,
         'createdAt': FieldValue.serverTimestamp(),
@@ -92,181 +71,156 @@ class AuthService {
         'gold': 0,
       });
 
-      await saveUserId(docRef.id, false);
       return {
         'success': true,
-        'userId': docRef.id,
-        'nickname': nickname,
-        'displayName': displayName,
+        'userId': uid,
+        'nickname': n,
+        'displayName': d,
       };
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        return {'success': false, 'error': 'Bu nickname zaten alınmış'};
+      }
+      if (e.code == 'weak-password') {
+        return {'success': false, 'error': 'Şifre çok zayıf'};
+      }
+      debugPrint('❌ createAccount error: ${e.code}');
+      return {'success': false, 'error': e.message ?? e.code};
     } catch (e) {
-      debugPrint('❌ Hesap oluşturma hatası: $e');
+      debugPrint('❌ createAccount error: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
 
-  // GİRİŞ YAP
+  // LOGIN
   static Future<Map<String, dynamic>> login({
     required String nickname,
     required String password,
   }) async {
+    final n = nickname.trim();
     try {
-      // Nickname ile kullanıcıyı bul
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('nickname', isEqualTo: nickname)
-          .where('isGuest', isEqualTo: false)
-          .limit(1)
-          .get();
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: _nicknameToEmail(n),
+        password: password,
+      );
+      final uid = cred.user!.uid;
+      final doc = await _db.collection('users').doc(uid).get();
+      final data = doc.data() ?? {};
 
-      if (snapshot.docs.isEmpty) {
-        return {'success': false, 'error': 'Hesap bulunamadı'};
+      return {
+        'success': true,
+        'userId': uid,
+        'nickname': data['nickname'] ?? n,
+        'displayName': data['displayName'],
+        'avatarColor': data['avatarColor'],
+      };
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        return {'success': false, 'error': 'Hesap bulunamadı veya şifre yanlış'};
       }
-
-      final doc = snapshot.docs.first;
-      final userData = doc.data();
-      final hashedInput = hashPassword(password, userData['salt']);
-
-      if (hashedInput == userData['password']) {
-        await saveUserId(doc.id, false);
-        return {
-          'success': true,
-          'userId': doc.id,
-          'nickname': userData['nickname'],
-          'displayName': userData['displayName'],
-          'avatarColor': userData['avatarColor'],
-        };
+      if (e.code == 'wrong-password') {
+        return {'success': false, 'error': 'Yanlış şifre'};
       }
-
-      return {'success': false, 'error': 'Yanlış şifre'};
+      debugPrint('❌ login error: ${e.code}');
+      return {'success': false, 'error': e.message ?? e.code};
     } catch (e) {
-      debugPrint('❌ Giriş hatası: $e');
+      debugPrint('❌ login error: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
 
-  // MİSAFİR GİRİŞ
+  // GUEST LOGIN (anonymous)
   static Future<Map<String, dynamic>> guestLogin({
     required String displayName,
     required String avatarColor,
   }) async {
-    try {
-      // VALİDASYON
-      if (displayName.isEmpty) {
-        return {'success': false, 'error': 'İsim boş olamaz'};
-      }
-      if (displayName.length < 2) {
-        return {'success': false, 'error': 'İsim en az 2 karakter olmalı'};
-      }
-      if (displayName.length > 15) {
-        return {'success': false, 'error': 'İsim en fazla 15 karakter olmalı'};
-      }
+    final d = displayName.trim();
+    if (d.isEmpty) return {'success': false, 'error': 'İsim boş olamaz'};
+    if (d.length < 2) {
+      return {'success': false, 'error': 'İsim en az 2 karakter olmalı'};
+    }
+    if (d.length > 15) {
+      return {'success': false, 'error': 'İsim en fazla 15 karakter olmalı'};
+    }
 
-      final docRef = FirebaseFirestore.instance.collection('guests').doc();
-      await docRef.set({
-        'displayName': displayName,
+    try {
+      final cred = await _auth.signInAnonymously();
+      final uid = cred.user!.uid;
+
+      await _db.collection('users').doc(uid).set({
+        'displayName': d,
         'avatarColor': avatarColor,
         'isGuest': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      await saveUserId(docRef.id, true);
+
       return {
         'success': true,
-        'userId': docRef.id,
-        'displayName': displayName,
+        'userId': uid,
+        'displayName': d,
         'isGuest': true,
       };
     } catch (e) {
-      debugPrint('❌ Misafir giriş hatası: $e');
+      debugPrint('❌ guestLogin error: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
 
-  // OYUN İSMİNİ DEĞİŞTİR
+  // UPDATE DISPLAY NAME
   static Future<Map<String, dynamic>> updateDisplayName({
     required String userId,
     required String newDisplayName,
   }) async {
+    final d = newDisplayName.trim();
+    if (d.isEmpty) return {'success': false, 'error': 'İsim boş olamaz'};
+    if (d.length < 2) {
+      return {'success': false, 'error': 'İsim en az 2 karakter olmalı'};
+    }
+    if (d.length > 15) {
+      return {'success': false, 'error': 'İsim en fazla 15 karakter olmalı'};
+    }
+
     try {
-      // VALİDASYON
-      if (newDisplayName.isEmpty) {
-        return {'success': false, 'error': 'İsim boş olamaz'};
-      }
-      if (newDisplayName.length < 2) {
-        return {'success': false, 'error': 'İsim en az 2 karakter olmalı'};
-      }
-      if (newDisplayName.length > 15) {
-        return {'success': false, 'error': 'İsim en fazla 15 karakter olmalı'};
-      }
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .update({'displayName': newDisplayName});
-
+      await _db.collection('users').doc(userId).update({'displayName': d});
       return {'success': true};
     } catch (e) {
-      debugPrint('❌ İsim değiştirme hatası: $e');
+      debugPrint('❌ updateDisplayName error: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
 
-  // =========================================
-  // LOCAL STORAGE (Session Management)
-  // =========================================
-
-  // USER ID KAYDET
-  static Future<void> saveUserId(String userId, bool isGuest) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userId', userId);
-    await prefs.setBool('isGuest', isGuest);
-  }
-
-  /// Get current logged-in user
-  /// Returns: null if no user logged in
-  /// Returns: Map with userId, displayName, avatarColor, nickname?, isGuest
-  /// Note: nickname is null for guest users
+  /// Get current logged-in user.
+  /// Returns null if no user is logged in.
+  /// Map: userId, isGuest, displayName, nickname?, avatarColor
   static Future<Map<String, dynamic>?> getCurrentUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('userId');
-    final isGuest = prefs.getBool('isGuest') ?? false;
-
-    if (userId == null) {
-      return null;
-    }
+    final fbUser = _auth.currentUser;
+    if (fbUser == null) return null;
 
     try {
-      // Load user from Firestore
-      final collection = isGuest ? 'guests' : 'users';
-      final doc = await FirebaseFirestore.instance
-          .collection(collection)
-          .doc(userId)
-          .get();
-
+      final doc = await _db.collection('users').doc(fbUser.uid).get();
       if (!doc.exists) {
-        // User was deleted, clear local storage
+        // Auth session without a profile doc -> stale, sign out.
         await logout();
         return null;
       }
 
       final data = doc.data()!;
+      final isGuest = data['isGuest'] ?? fbUser.isAnonymous;
       return {
-        'userId': userId,
+        'userId': fbUser.uid,
         'isGuest': isGuest,
         'displayName': data['displayName'],
         'nickname': isGuest ? null : data['nickname'],
         'avatarColor': data['avatarColor'],
       };
     } catch (e) {
-      debugPrint('❌ Error loading current user: $e');
-      return null; // Return null on error instead of rethrowing
+      debugPrint('❌ getCurrentUser error: $e');
+      return null;
     }
   }
 
   // LOGOUT
   static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('userId');
-    await prefs.remove('isGuest');
+    await _auth.signOut();
   }
 }

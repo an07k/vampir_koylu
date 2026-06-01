@@ -6,8 +6,8 @@ import 'constants/app_l10n.dart';
 import 'constants/locale_manager.dart';
 import 'themes/app_theme.dart';
 import 'package:vampir_koylu/screens/welcome_screen.dart';
-import 'screens/create_room_screen.dart';
-import 'screens/join_room_screen.dart';
+import 'screens/game_catalog_screen.dart';
+import 'screens/platform_join_room_screen.dart';
 import 'screens/statistics_screen.dart';
 import 'screens/settings_screen.dart';
 import 'services/auth_service.dart';
@@ -108,48 +108,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     _userDataFuture = UserDataService.loadUserData();
   }
 
-  Future<void> _navigateToCreateRoom() async {
-    final user = await AuthService.getCurrentUser();
-    if (user == null) return;
-
-    final activeRoomId = await UserDataService.getUserActiveRoom(user['userId']);
-
-    if (activeRoomId != null && mounted) {
-      _showAlreadyInRoomDialog(activeRoomId);
-      return;
-    }
-
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const CreateRoomScreen()),
-      );
-    }
-  }
-
-  void _showAlreadyInRoomDialog(String roomId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: Text(
-          AppL10n.alreadyInRoom,
-          style: const TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          AppL10n.leaveRoomMessage(roomId),
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              AppL10n.ok,
-              style: const TextStyle(color: AppColors.secondary),
-            ),
-          ),
-        ],
-      ),
+  void _navigateToCreateRoom() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const GameCatalogScreen()),
     );
   }
 
@@ -260,7 +222,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const JoinRoomScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const PlatformJoinRoomScreen()),
               );
             },
           ),

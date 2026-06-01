@@ -60,7 +60,8 @@ class GoldService {
             .doc(userId)
             .get();
 
-        if (playerDoc.exists) {
+        // Registered users only — guests now also have a users doc.
+        if (playerDoc.exists && playerDoc.data()?['isGuest'] != true) {
           try {
             await addGold(userId, winReward);
           } catch (e) {
